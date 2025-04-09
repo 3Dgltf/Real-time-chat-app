@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Panel</title>
     <style>
-        /* --- Base Styles (EXACTLY like user panel) --- */
+        /* --- Base Styles (from user panel UI) --- */
         * {
             margin: 0;
             padding: 0;
@@ -13,117 +13,149 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         html, body {
-            height: 100%;
-            overflow: hidden;
+            height: 100%; /* Ensure body takes full height */
+            overflow: hidden; /* Prevent double scrollbars */
         }
         body {
             background: linear-gradient(to right, #6a11cb, #2575fc);
-            display: flex; /* Use flex on body for main container centering */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             color: #fff;
-            padding: 0; /* No padding on body */
+            padding: 0; /* Remove body padding for full screen container */
         }
 
-        /* --- Main Container Wrapper (Centers the chat box) --- */
-        /* This outer wrapper might not be strictly needed if body is flex */
-        /* .main-container-wrapper {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            height: 100vh;
-        } */
-
-         /* --- Combined Container (Holds Sidebar + Chat) --- */
-         .admin-view-wrapper {
+        /* --- Main Container (Looks like user chat initially) --- */
+        .admin-main-container {
             width: 100%;
             height: 100vh;
             display: flex;
-            background-color: rgba(0,0,0,0.1); /* Optional subtle overlay */
-         }
+            background-color: rgba(0, 0, 0, 0.1); /* Slightly darker background */
+            /* Removed backdrop-filter for potentially better performance on complex layout */
+        }
 
-        /* --- Sidebar (Initially hidden, controlled by JS) --- */
+        /* --- Sidebar (Hidden initially, appears after login) --- */
         .sidebar {
-            width: 0; /* Hidden by default */
-            background: rgba(255, 255, 255, 0.05);
-            border-right: none; /* Hidden by default */
+            width: 280px;
+            background: rgba(255, 255, 255, 0.05); /* Transparent sidebar */
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
             display: flex;
             flex-direction: column;
+            padding: 0;
             overflow: hidden;
-            transition: width 0.3s ease, border 0.3s ease;
-            flex-shrink: 0;
-            color: #eee; /* Text color for sidebar elements */
+            transition: width 0.3s ease; /* Add transition */
+            flex-shrink: 0; /* Prevent sidebar from shrinking */
         }
-        .sidebar.visible {
-            width: 280px; /* Visible width */
-             border-right: 1px solid rgba(255, 255, 255, 0.2);
+         .sidebar.hidden {
+             width: 0; /* Collapse width when hidden */
+             padding: 0;
+             border-right: none;
+         }
+
+        .admin-header {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+             white-space: nowrap; /* Prevent wrap during transition */
+             overflow: hidden;
         }
-        .sidebar .content-wrapper { /* Added wrapper for padding */
-             padding: 15px;
-             display: flex;
-             flex-direction: column;
-             height: 100%; /* Allow content to fill */
-             overflow: hidden; /* Prevent padding from causing scroll */
-        }
-        .admin-header { border-bottom: 1px solid rgba(255, 255, 255, 0.2); padding-bottom: 15px; margin-bottom: 15px; }
-        .admin-header h3 { margin-bottom: 10px; font-size: 1.2em; color: #fff; }
-        #admin-profile { font-size: 0.85em; margin-bottom: 10px; word-break: break-all; }
+        .admin-header h3 { margin-bottom: 10px; font-size: 1.2em; color: #fff;}
+        #admin-profile { font-size: 0.85em; margin-bottom: 10px; word-break: break-all; color: #eee; }
         #admin-profile strong { color: #fff; }
         .sidebar-actions button { width: 100%; margin-bottom: 8px; font-size: 0.9em; }
-        /* Button styles (same as v2) */
-        #logoutButton { background-color: #ff4f81; border: 1px solid rgba(255,255,255,0.3); color: white;}
+        #logoutButton { background-color: #ff4f81; border: 1px solid rgba(255,255,255,0.3); }
         #logoutButton:hover { background-color: #e03060; }
         #muteButton { background-color: #ffd700; color: #333; border: 1px solid rgba(255,255,255,0.3); }
         #muteButton:hover { background-color: #e0a800;}
         #muteButton.muted { background-color: #ff8c00; color: white; }
 
-        .user-list-header { padding: 10px 0 5px 0; font-weight: bold; border-bottom: 1px solid rgba(255, 255, 255, 0.2); margin-bottom: 5px; font-size: 0.9em; }
-        .user-list-container { flex-grow: 1; overflow-y: auto; margin: 0 -15px; /* Extend to edges for scrollbar */}
-        #user-list { list-style: none; padding: 0; margin: 0; }
-        #user-list li { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid rgba(255, 255, 255, 0.1); transition: background-color 0.2s ease; display: flex; justify-content: space-between; align-items: center; font-size: 0.9em; }
-        #user-list li:hover { background-color: rgba(255, 255, 255, 0.1); }
-        #user-list li.active { background-color: #2575fc; color: white; font-weight: 500; }
-        #user-list li.active:hover { background-color: #1a5fce; }
-        #user-list li .user-name { overflow: hidden; text-overflow: ellipsis; flex-grow: 1; margin-right: 10px; white-space: nowrap;}
-        #user-list li .unread-indicator { /* Same as v2 */ min-width: 18px; height: 18px; background-color: #ff4f81; border-radius: 50%; color: white; font-size: 0.7em; font-weight: bold; text-align: center; line-height: 18px; padding: 0 4px; flex-shrink: 0; opacity: 0; transform: scale(0.5); transition: opacity 0.3s ease, transform 0.3s ease; }
-        #user-list li .unread-indicator.visible { opacity: 1; transform: scale(1); }
-
-
-        /* --- Chat Container (Core UI, used in both modes) --- */
-        .chat-container {
-            width: 100%; /* Takes full width of its parent */
-            height: 100%; /* Takes full height of its parent */
-            /* Use flex: 1 when inside .admin-view-wrapper */
-            flex: 1;
-            background-color: transparent; /* Chat area itself is transparent */
-            /* background-color: rgba(255, 255, 255, 0.1); From original */
-            /* border-radius: 20px; Remove radius when full screen */
-            /* padding: 20px; Padding applied internally */
-            /* box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37); Remove shadow */
-            /* backdrop-filter: blur(10px); Remove blur */
-            display: flex;
-            flex-direction: column;
-            position: relative; /* For positioning call alerts */
-            overflow: hidden; /* Prevent content spill */
+        .user-list-header {
+             padding: 10px 15px;
+             font-weight: bold;
+             color: #eee;
+             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+             font-size: 0.9em;
+             background-color: rgba(255, 255, 255, 0.1);
+             white-space: nowrap; overflow: hidden;
         }
+        .user-list-container {
+             flex-grow: 1;
+             overflow-y: auto;
+             background-color: transparent; /* Transparent list bg */
+             scrollbar-width: thin;
+             scrollbar-color: rgba(255,255,255,0.3) transparent;
+        }
+         .user-list-container::-webkit-scrollbar { width: 6px; }
+         .user-list-container::-webkit-scrollbar-track { background: transparent; }
+         .user-list-container::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.3); border-radius: 3px;}
 
-        /* Chat Header */
-        .chat-header {
-            padding: 15px 20px; /* Standard padding */
-            background-color: rgba(0, 0, 0, 0.2);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            flex-shrink: 0;
+        #user-list { list-style: none; padding: 0; margin: 0; }
+        #user-list li {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: background-color 0.2s ease;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-size: 0.95em;
+            color: #eee;
+            white-space: nowrap; overflow: hidden;
         }
+        #user-list li:hover { background-color: rgba(255, 255, 255, 0.1); }
+        #user-list li.active { background-color: #2575fc; color: white; font-weight: bold; }
+        #user-list li.active:hover { background-color: #1a5fce; }
+        #user-list li .user-name { overflow: hidden; text-overflow: ellipsis; flex-grow: 1; margin-right: 10px; }
+        #user-list li .unread-indicator {
+            min-width: 18px; height: 18px; background-color: #ff4f81; border-radius: 50%;
+            color: white; font-size: 0.7em; font-weight: bold; text-align: center;
+            line-height: 18px; padding: 0 4px; flex-shrink: 0; opacity: 0;
+            transform: scale(0.5); transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        #user-list li .unread-indicator.visible { opacity: 1; transform: scale(1); }
+
+        /* --- Chat Area (Takes remaining space) --- */
+        .chat-area-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Important */
+             /* Use the user panel gradient */
+             background: linear-gradient(to right, #6a11cb, #2575fc);
+        }
+
+        /* Chat Header - Modified for Admin */
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background-color: rgba(0, 0, 0, 0.2); /* Darker translucent header */
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            flex-shrink: 0;
+            color: #fff;
+            transition: background-color 0.3s ease;
+        }
+        .chat-header.login-mode {
+             background-color: transparent; /* Transparent header during login */
+             border-bottom: none;
+        }
+        .chat-header-left { display: flex; flex-direction: column; }
         .chat-header-left h2 { margin: 0; font-size: 1.1em; color: #fff; }
         #user-status { font-size: 0.8em; color: #ddd; margin-top: 2px; }
-        #user-status .status-dot { /* Same as v2 */ width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; display: inline-block; vertical-align: middle; background-color: #aaa; transition: background-color 0.3s ease; }
+        #user-status .status-dot {
+            width: 9px; height: 9px; border-radius: 50%; margin-right: 4px;
+            display: inline-block; vertical-align: middle; background-color: #aaa;
+            transition: background-color 0.3s ease;
+        }
         #user-status .status-dot.online { background-color: #33ff33; }
         #user-status .status-dot.offline { background-color: #aaa; }
-        .chat-actions button { /* Same as v2 */ margin-left: 8px; padding: 5px 10px; font-size: 0.8em; background-color: rgba(255,255,255, 0.2); color: #fff; border: 1px solid rgba(255,255,255,0.3); cursor: pointer; }
+
+        .chat-actions button {
+            margin-left: 8px; padding: 6px 10px; font-size: 0.8em;
+            background-color: rgba(255,255,255, 0.2); color: #fff; border: 1px solid rgba(255,255,255,0.3);
+        }
         .chat-actions button:hover { background-color: rgba(255,255,255, 0.3); }
         .chat-actions button:disabled { background-color: rgba(255,255,255, 0.1); color: #aaa; cursor: not-allowed; }
         #blockUserButton { background-color: #ffd700; color: #333;}
@@ -131,136 +163,198 @@
         #deleteChatButton { background-color: #ff4f81; color: white; }
         #exportChatButton { background-color: #00c6ff; color: #000; }
 
-
         /* Messages Area */
-        .messages {
-            flex: 1; /* Takes remaining space */
+        .messages-container {
+            flex-grow: 1;
             overflow-y: auto;
             padding: 20px;
             display: flex;
             flex-direction: column;
-            scrollbar-width: thin; /* Firefox */
-            scrollbar-color: rgba(255,255,255,0.3) transparent; /* Firefox */
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.3) transparent;
         }
-        /* Webkit Scrollbar */
-        .messages::-webkit-scrollbar { width: 6px; }
-        .messages::-webkit-scrollbar-track { background: transparent; }
-        .messages::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.3); border-radius: 3px; }
+         .messages-container::-webkit-scrollbar { width: 6px; }
+         .messages-container::-webkit-scrollbar-track { background: transparent; }
+         .messages-container::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.3); border-radius: 3px;}
 
-        /* Message Styles (Unified) */
-        .message-wrapper { display: flex; margin-bottom: 10px; max-width: 85%; }
-        .message-wrapper.sent { align-self: flex-end; }
-        .message-wrapper.received { align-self: flex-start; }
-        .message-wrapper.bot { align-self: flex-start; }
+        /* Message Styles (Combine User/Admin/Bot) */
+        .message-wrapper {
+            display: flex;
+            margin-bottom: 10px;
+            max-width: 85%;
+        }
+        .message-wrapper.sent { /* Admin sending */
+            align-self: flex-end;
+            justify-content: flex-end;
+        }
+        .message-wrapper.received { /* User sending to admin */
+            align-self: flex-start;
+        }
+        .message-wrapper.bot { /* Login Bot messages */
+             align-self: flex-start;
+        }
 
-        .message-wrapper p { padding: 10px 15px; border-radius: 15px; word-wrap: break-word; line-height: 1.4; color: #000; }
-        /* Colors match original user panel */
-        .message-wrapper.sent p { background-color: #00c6ff; border-bottom-right-radius: 5px; }
-        .message-wrapper.received p { background-color: #ffd700; border-bottom-left-radius: 5px; }
-        .message-wrapper.bot p { background-color: rgba(255, 255, 255, 0.8); color: #333; border-bottom-left-radius: 5px; }
+        .message-wrapper p {
+            padding: 10px 15px;
+            border-radius: 15px;
+            word-wrap: break-word;
+            line-height: 1.4;
+            color: #000; /* Default text color */
+        }
+        .message-wrapper.sent p { /* Admin sent */
+            background-color: #00c6ff; /* Admin uses user's 'sent' color */
+            border-bottom-right-radius: 5px;
+        }
+        .message-wrapper.received p { /* User received */
+            background-color: #ffd700; /* Admin uses user's 'received' color */
+            border-bottom-left-radius: 5px;
+        }
+        .message-wrapper.bot p { /* Bot messages */
+             background-color: rgba(255, 255, 255, 0.8); /* Whiteish bot bubble */
+             color: #333;
+             border-bottom-left-radius: 5px;
+        }
 
-        .message-wrapper .timestamp { font-size: 0.7em; color: rgba(255, 255, 255, 0.6); margin-top: 4px; display: block; }
+        .message-wrapper .timestamp {
+            font-size: 0.7em; color: rgba(255, 255, 255, 0.6); margin-top: 4px; display: block;
+        }
         .message-wrapper.sent .timestamp { text-align: right; }
         .message-wrapper.received .timestamp, .message-wrapper.bot .timestamp { text-align: left; }
 
-        /* Seen Checkmark */
-        .message-wrapper.received .timestamp::after { /* Same as v2 */ content: ''; display: inline-block; width: 12px; height: 12px; margin-left: 5px; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 15.1"><path fill="%23aaccaa" d="M15.6 3.4l-1.1-1.1-8.9 8.9L1.8 7.4l-1.1 1.1 4.8 4.8 10.1-10z"/></svg>'); background-repeat: no-repeat; background-size: contain; vertical-align: bottom; }
-        .message-wrapper.received.seen .timestamp::after { /* Same as v2 */ background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 15.1"><path fill="%2333ff33" d="M17.6 3.4L16.5 2.3C13.1-1.1 7.1 2.1 4.7 4.5l-1.9 1.9-1.1 1.1 4.8 4.8 1.1-1.1 1.9-1.9c2.4-2.4 8.4-5.6 10.1-3.9zm-4.8 4.8l-1.1 1.1-4.8-4.8L8 3.4l1.1-1.1 4.8 4.8z"/></svg>'); }
-
-        /* Typing Indicator */
-        #typing-indicator {
-            min-height: 18px; font-style: italic; color: rgba(255, 255, 255, 0.7);
-            font-size: 0.85em; padding: 5px 20px; flex-shrink: 0;
-            background-color: transparent;
+        /* Seen Checkmark (Only for received 'user' messages) */
+         .message-wrapper.received .timestamp::after {
+            content: ''; display: inline-block; width: 12px; height: 12px; margin-left: 5px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 15.1"><path fill="%23aaccaa" d="M15.6 3.4l-1.1-1.1-8.9 8.9L1.8 7.4l-1.1 1.1 4.8 4.8 10.1-10z"/></svg>'); /* Single light green tick */
+            background-repeat: no-repeat; background-size: contain; vertical-align: bottom;
         }
+        .message-wrapper.received.seen .timestamp::after {
+             background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 15.1"><path fill="%2333ff33" d="M17.6 3.4L16.5 2.3C13.1-1.1 7.1 2.1 4.7 4.5l-1.9 1.9-1.1 1.1 4.8 4.8 1.1-1.1 1.9-1.9c2.4-2.4 8.4-5.6 10.1-3.9zm-4.8 4.8l-1.1 1.1-4.8-4.8L8 3.4l1.1-1.1 4.8 4.8z"/></svg>'); /* Double bright green tick */
+        }
+
 
         /* Input Area */
         .input-area {
-            display: flex; gap: 10px; padding: 15px 20px;
-            background-color: rgba(0, 0, 0, 0.2);
+            display: flex;
+            gap: 10px;
+            padding: 15px 20px;
+            background-color: rgba(0, 0, 0, 0.2); /* Darker translucent input area */
             border-top: 1px solid rgba(255, 255, 255, 0.2);
             flex-shrink: 0;
         }
-        .input-area input[type="text"], .input-area input[type="password"] {
-            flex: 1; padding: 12px 15px; border: none; border-radius: 10px;
-            background-color: rgba(255, 255, 255, 0.9); color: #333; outline: none; margin-bottom: 0;
+        .input-area input[type="text"] {
+            flex: 1;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #333;
+            outline: none;
+            margin-bottom: 0; /* Override */
         }
-        .input-area input::placeholder { color: #888; }
-        .input-area input:disabled { background-color: #ccc; }
+        .input-area input[type="text"]::placeholder { color: #888; }
+        .input-area input[type="text"]:disabled { background-color: #ccc; }
 
         .input-area button {
-             /* Style matches original user panel Send button */
-            padding: 12px 18px; border-radius: 10px; background-color: #00ffcc;
-            color: #000; font-weight: bold; transition: background-color 0.2s ease;
-            border: none; cursor: pointer;
+            padding: 12px 18px;
+            border-radius: 10px;
+            background-color: #00ffcc;
+            color: #000;
+            font-weight: bold;
+            transition: background-color 0.2s ease;
+            border: none; /* Override */
+            /* Standard send button style */
         }
         .input-area button:hover { background-color: #00ccaa; }
         .input-area button:disabled { background-color: #aaa; cursor: not-allowed; }
 
-
-        /* Call Notifications Overlay */
-        #call-notifications-container {
-            position: absolute; top: 10px; right: 10px; z-index: 100;
-            display: flex; flex-direction: column; gap: 10px;
+        #typing-indicator {
+            min-height: 18px; font-style: italic; color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85em; padding: 5px 20px; /* Padding to align with messages */
+            background-color: transparent; /* Typing indicator bg transparent */
+            flex-shrink: 0;
         }
-        .call-alert { /* Same as v2 */ padding: 12px 15px; border-radius: 8px; color: white; font-weight: bold; box-shadow: 0 3px 10px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 10px; }
-        .call-alert.incoming { background-color: #28a745; }
-        .call-alert.active { background-color: #007bff; }
-        .call-alert button { margin-left: 10px; background-color: rgba(255,255,255,0.8); color: #333; padding: 5px 10px; font-size: 0.85em; border: none; border-radius: 4px; cursor: pointer;}
+
+        /* Call Notifications */
+        #call-notifications-container {
+             position: absolute;
+             top: 10px;
+             right: 10px;
+             z-index: 100;
+             display: flex;
+             flex-direction: column;
+             gap: 10px;
+        }
+        .call-alert {
+            padding: 12px 15px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .call-alert.incoming { background-color: #28a745; } /* Green incoming */
+        .call-alert.active { background-color: #007bff; } /* Blue active */
+        .call-alert button {
+             margin-left: 10px; background-color: rgba(255,255,255,0.8); color: #333;
+             padding: 5px 10px; font-size: 0.85em; border: none;
+        }
         .call-alert button.reject, .call-alert button.end { background-color: #ff4f81; color: white; }
 
         /* Utility */
         .hidden { display: none !important; }
 
-        /* Mobile Adjustments */
-         @media (max-width: 768px) {
-             body { /* Allow body scroll if needed */ overflow: auto; }
-             .admin-view-wrapper { flex-direction: column; height: auto; min-height: 100vh; }
-             .sidebar { width: 100% !important; /* Always full width when visible */ height: auto; max-height: 40vh; border-right: none; border-bottom: 1px solid rgba(255, 255, 255, 0.2); flex-shrink: 0; transition: max-height 0.3s ease; }
-             .sidebar.visible { max-height: 40vh; /* Adjust as needed */ }
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+             .admin-main-container { flex-direction: column; height: auto; min-height: 100vh; }
+             .sidebar {
+                 width: 100% !important; /* Full width when stacked */
+                 height: auto; /* Auto height */
+                 max-height: 40vh; /* Limit height */
+                 border-right: none;
+                 border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+                 flex-shrink: 0;
+                 transition: max-height 0.3s ease; /* Transition height */
+             }
              .sidebar.hidden { max-height: 0; border: none; }
-             .chat-container { min-height: 60vh; /* Ensure chat takes remaining */ }
-             .chat-header { padding: 12px 15px; }
-             .messages { padding: 15px; }
+             .chat-area-wrapper { min-height: 60vh; } /* Ensure chat takes remaining space */
              .input-area { padding: 10px 15px; }
-             #call-notifications-container { top: 5px; right: 5px; } /* Adjust call alert position */
-             .call-alert { padding: 10px; font-size: 0.9em; }
-         }
+             .message-wrapper { max-width: 90%; }
+             #call-notifications-container { top: 60px; /* Adjust below potential header */}
+        }
 
     </style>
 </head>
 <body>
 
-    <!-- Main container holding sidebar and chat area -->
-    <div class="admin-view-wrapper">
+    <!-- Main Container -->
+    <div class="admin-main-container">
 
-        <!-- Sidebar (Starts hidden) -->
-        <aside class="sidebar" id="admin-sidebar">
-            <div class="content-wrapper">
-                <div class="admin-header">
-                    <h3>Admin Panel</h3>
-                    <div id="admin-profile">Logged in as: <strong id="admin-email-display"></strong></div>
-                    <div class="sidebar-actions">
-                        <button id="muteButton">Mute Alerts</button>
-                        <button id="logoutButton">Logout</button>
-                    </div>
+        <!-- Sidebar (Hidden Initially) -->
+        <aside class="sidebar hidden" id="admin-sidebar">
+            <div class="admin-header">
+                <h3>Admin Panel</h3>
+                <div id="admin-profile">Logged in as: <strong id="admin-email-display"></strong></div>
+                <div class="sidebar-actions">
+                    <button id="muteButton">Mute Alerts</button>
+                    <button id="logoutButton">Logout</button>
                 </div>
-                <div class="user-list-header">Users</div>
-                <div class="user-list-container">
-                    <ul id="user-list"></ul>
-                </div>
+            </div>
+            <div class="user-list-header">Users</div>
+            <div class="user-list-container">
+                <ul id="user-list"></ul>
             </div>
         </aside>
 
-        <!-- Chat Container (Always visible, content changes) -->
-        <div class="chat-container" id="main-chat-area">
+        <!-- Chat Area Wrapper -->
+        <div class="chat-area-wrapper">
             <!-- Header (Content changes based on mode) -->
-            <div class="chat-header" id="main-chat-header">
+            <div class="chat-header login-mode" id="main-chat-header">
                 <div class="chat-header-left">
                      <h2 id="current-chat-userName">Admin Login</h2>
                      <div id="user-status" class="hidden">User: <span class="status-dot offline" title="Offline"></span></div>
                 </div>
-                <!-- Admin actions are initially hidden -->
                 <div class="chat-header-right chat-actions hidden" id="main-chat-actions">
                      <button id="blockUserButton" disabled>Block</button>
                      <button id="deleteChatButton" disabled>Delete Chat</button>
@@ -272,11 +366,12 @@
              <div id="typing-indicator"></div>
 
              <!-- Messages -->
-            <div class="messages" id="messages">
-                <!-- Messages appear here (bot or user) -->
+            <div class="messages-container" id="messages">
+                <!-- Login bot messages appear here first -->
+                <!-- User chat messages appear here after login -->
             </div>
 
-            <!-- Input Area -->
+            <!-- Input -->
             <div class="input-area">
                 <input type="text" id="messageInput" placeholder="Type your message..." autocomplete="off">
                 <button id="sendButton">Send</button>
@@ -285,10 +380,13 @@
     </div>
 
      <!-- Call Notifications (Overlay) -->
-     <div id="call-notifications-container"></div>
+     <div id="call-notifications-container">
+         <!-- Call alerts will be added here by JS -->
+     </div>
 
-    <!-- Audio element -->
-    <audio id="ringtone" src="ringtone.mp3" preload="auto"></audio>
+
+    <!-- Audio element for ringtone -->
+    <audio id="ringtone" src="ringtone.mp3" preload="auto"></audio> <!-- UPDATE src PATH -->
 
     <!-- Firebase SDK -->
     <script type="module">
@@ -297,7 +395,7 @@
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
         import { getDatabase, ref, set, push, onValue, onChildAdded, onChildChanged, serverTimestamp, query, orderByChild, limitToLast, update, remove, off, onDisconnect } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
 
-        // Firebase configuration
+        // Your Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyA5mBW5mXff46acu01BbPmZh8LGGXV42v8",
             authDomain: "chat-app-ddecb.firebaseapp.com",
@@ -316,7 +414,7 @@
 
         // --- DOM Elements ---
         const adminSidebar = document.getElementById('admin-sidebar');
-        const messagesDiv = document.getElementById('messages'); // Single message div
+        const messagesDiv = document.getElementById('messages');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
         const adminEmailDisplay = document.getElementById('admin-email-display');
@@ -336,20 +434,17 @@
         const muteButton = document.getElementById('muteButton');
 
         // --- State Variables ---
-        // Combined login/app state: LOGIN_BOT_INIT, LOGIN_BOT_AWAIT_EMAIL, LOGIN_BOT_AWAIT_PASSWORD,
-        //                          LOGIN_BOT_VERIFYING, LOGIN_BOT_FAILED, ADMIN_IDLE, ADMIN_CHAT_SELECTED
-        let appState = 'LOGIN_BOT_INIT';
+        let loginState = 'AWAITING_INITIATION'; // States: AWAITING_INITIATION, AWAITING_EMAIL, AWAITING_PASSWORD, VERIFYING, LOGGED_IN, LOGIN_FAILED
         let tempEmail = '';
         let tempPassword = '';
         let selectedUserId = null;
-        let currentUserList = {};
+        let currentUserList = {}; // Cache for user data and listeners
         let typingTimeout = null;
         let isMuted = localStorage.getItem('adminMuted') === 'true';
         let globalListenersAttached = false;
-        let currentAdminUser = null;
-        let botMessageTimeout; // To manage bot response timing
+        let currentAdminUser = null; // Store the logged-in admin user object
 
-        // --- Hardcoded Credentials ---
+        // --- Hardcoded Admin Credentials (as requested) ---
         const ADMIN_EMAIL = "cnow20874@gmail.com";
         const ADMIN_PASSWORD = "hi99wMJpgfHpQjZ";
 
@@ -357,268 +452,241 @@
         const chatsRef = ref(db, 'chats');
         const adminStatusRef = ref(db, 'adminStatus');
 
-        // --- Initialization and Auth ---
-        function initializeAppView() {
-            // Set persistence
-             setPersistence(auth, browserLocalPersistence)
-             .then(() => {
-                 // Listen for auth changes AFTER setting persistence
-                 onAuthStateChanged(auth, handleAuthStateChange);
-             })
-             .catch((error) => {
-                 console.error("Error setting auth persistence: ", error);
-                 // Fallback: Listen for auth changes anyway
-                 onAuthStateChanged(auth, handleAuthStateChange);
-             });
-
-            // Setup UI Listeners
-            sendButton.onclick = handleSendButtonClick;
-            messageInput.onkeydown = handleInputKeydown;
-            logoutButton.onclick = handleLogout;
-            muteButton.onclick = toggleMute;
-            updateMuteButtonUI();
-            requestNotificationPermission();
-        }
-
-        function handleAuthStateChange(user) {
-             clearTimeout(botMessageTimeout); // Cancel any pending bot message
-
-             if (user && user.email === ADMIN_EMAIL) {
-                 // Correct admin logged in
-                 console.log("Admin authenticated:", user.email);
-                 currentAdminUser = user;
-                 if (!appState.startsWith('ADMIN_')) { // Avoid transition if already in admin state
-                      displayMessage('bot', "Admin Login Successful!"); // Show final success message
-                      botMessageTimeout = setTimeout(() => {
-                           displayMessage('bot', "Connecting to User Panel...");
-                           botMessageTimeout = setTimeout(() => {
-                               switchToAdminMode();
-                           }, 800); // Delay before showing admin UI
-                      }, 500);
-                 } else {
-                      // Already in admin mode, just ensure UI is correct
-                      switchToAdminMode();
-                 }
-             } else {
-                 // Not logged in or wrong user
-                 console.log("Admin not authenticated.");
-                 currentAdminUser = null;
-                 if (appState.startsWith('ADMIN_')) {
-                     // Was logged in, now needs to log out visually
-                     switchToLoginBotMode();
-                 } else if (appState !== 'LOGIN_BOT_INIT') {
-                     // Was in a login state but failed or session expired, restart bot
-                     switchToLoginBotMode(true); // Force reset and welcome message
-                 } else {
-                      // Initial load, not logged in
-                      switchToLoginBotMode(true);
-                 }
-             }
-         }
+        // --- Initialization and Auth Handling ---
+        // Set persistence to local storage
+        setPersistence(auth, browserLocalPersistence)
+          .then(() => {
+            // Now listen for auth state changes
+            onAuthStateChanged(auth, (user) => {
+                if (user && user.email === ADMIN_EMAIL) {
+                    // User is signed in and is the correct admin
+                    currentAdminUser = user;
+                    console.log("Admin already authenticated:", user.email);
+                    if (loginState !== 'LOGGED_IN') {
+                         activateAdminMode(true); // Activate admin mode directly, skip bot chat
+                    }
+                } else {
+                    // User is signed out or not the correct admin
+                    currentAdminUser = null;
+                    console.log("Admin not authenticated or incorrect user.");
+                    if (loginState === 'LOGGED_IN') {
+                        deactivateAdminMode(); // Go back to login mode if was logged in
+                    }
+                    if (loginState !== 'AWAITING_INITIATION') { // Avoid double welcome if already there
+                         startLoginBotConversation();
+                    }
+                }
+            });
+          })
+          .catch((error) => {
+            console.error("Error setting auth persistence: ", error);
+            // Fallback or error handling needed here
+          });
 
 
-        // --- UI Mode Switching ---
-        function switchToLoginBotMode(showWelcome = false) {
-            console.log("Switching to Login Bot Mode");
-            appState = 'LOGIN_BOT_INIT';
-            cleanupAdminListeners(); // Detach Firebase listeners for users/calls
-
-            // Configure UI for Login Bot
-            adminSidebar.classList.remove('visible');
-            mainChatActions.classList.add('hidden');
-            userStatusDiv.classList.add('hidden');
-            currentChatUserNameH2.textContent = "Admin Login";
-            messagesDiv.innerHTML = ''; // Clear messages
-            typingIndicatorDiv.textContent = '';
-            hideAllCallNotifications();
-            messageInput.type = "text";
-            messageInput.placeholder = "Type anything to start...";
+        function startLoginBotConversation() {
+            loginState = 'AWAITING_INITIATION';
+            messagesDiv.innerHTML = ''; // Clear previous messages
+            displayMessage('bot', "Welcome Admin! Send any message to start the login process.");
             messageInput.disabled = false;
             sendButton.disabled = false;
-
-            if (showWelcome) {
-                displayMessage('bot', "Welcome Admin! Send any message to start the login process.");
-            }
+            messageInput.placeholder = "Type anything to start...";
+            tempEmail = '';
+            tempPassword = '';
         }
 
-        function switchToAdminMode() {
-            console.log("Switching to Admin Mode");
-            appState = 'ADMIN_IDLE'; // Initial admin state (no user selected)
-            messagesDiv.innerHTML = ''; // Clear login messages
-            typingIndicatorDiv.textContent = ''; // Clear any bot typing
-
-            // Configure UI for Admin View
-            adminSidebar.classList.add('visible');
-            mainChatActions.classList.remove('hidden');
-            // userStatusDiv will be shown when a user is selected
-            currentChatUserNameH2.textContent = "Select a User";
-            messageInput.placeholder = "Select a user to chat";
-            messageInput.disabled = true; // Disabled until user selected
-            sendButton.disabled = true;
-
-            // Load admin data only if not already loaded
-             if (!globalListenersAttached) {
-                 loadUserListAndListeners(); // Load users and attach listeners
-             }
-
-            // Update profile display
-            if (currentAdminUser) {
-                adminEmailDisplay.textContent = currentAdminUser.email;
-            }
-            setAdminOnlineStatus(true);
-             updateMuteButtonUI(); // Refresh mute button state
-        }
-
-        // --- Login Bot Conversation ---
-        function handleLoginBotInput() {
+        // --- Login Bot Logic ---
+        function handleLoginInput() {
             const inputText = messageInput.value.trim();
             if (!inputText) return;
 
-            displayMessage('sent', inputText); // Show admin's input
+            // Display admin's message immediately
+            displayMessage('sent', inputText); // Display admin's input as 'sent'
             messageInput.value = '';
-            messageInput.disabled = true;
+            messageInput.disabled = true; // Disable input while bot 'thinks'
             sendButton.disabled = true;
-            clearTimeout(botMessageTimeout); // Clear previous timeout
 
-            botMessageTimeout = setTimeout(() => {
-                // Process based on state
-                let botReply = "";
-                let nextState = appState;
-                let inputType = "text";
-                let placeholder = "";
-
-                switch (appState) {
-                    case 'LOGIN_BOT_INIT':
-                        botReply = "Provide Email:";
-                        nextState = 'LOGIN_BOT_AWAIT_EMAIL';
-                        placeholder = "Enter your admin email...";
+            // Process based on state
+            setTimeout(() => { // Simulate bot thinking time
+                switch (loginState) {
+                    case 'AWAITING_INITIATION':
+                        loginState = 'AWAITING_EMAIL';
+                        displayMessage('bot', "Provide Email:");
+                        messageInput.placeholder = "Enter your admin email...";
                         break;
-                    case 'LOGIN_BOT_AWAIT_EMAIL':
+                    case 'AWAITING_EMAIL':
                         tempEmail = inputText;
+                        // Basic email format check (optional but good)
                         if (!/\S+@\S+\.\S+/.test(tempEmail)) {
-                            botReply = "Invalid email format. Provide Email:";
-                            nextState = 'LOGIN_BOT_AWAIT_EMAIL';
-                             placeholder = "Enter your admin email...";
+                             displayMessage('bot', "Invalid email format. Please provide a valid email:");
+                             loginState = 'AWAITING_EMAIL'; // Stay in this state
+                             messageInput.placeholder = "Enter your admin email...";
                         } else {
-                            botReply = "Provide Password:";
-                            nextState = 'LOGIN_BOT_AWAIT_PASSWORD';
-                            inputType = "password";
-                             placeholder = "Enter your admin password...";
+                             loginState = 'AWAITING_PASSWORD';
+                             displayMessage('bot', "Provide Password:");
+                             messageInput.type = "password"; // Mask password input
+                             messageInput.placeholder = "Enter your admin password...";
                         }
                         break;
-                    case 'LOGIN_BOT_AWAIT_PASSWORD':
+                    case 'AWAITING_PASSWORD':
                         tempPassword = inputText;
-                        botReply = "Verifying credentials...";
-                        nextState = 'LOGIN_BOT_VERIFYING';
-                        placeholder = "Verifying...";
-                        verifyCredentials(); // Start verification
+                        loginState = 'VERIFYING';
+                        displayMessage('bot', "Verifying credentials...");
+                        messageInput.type = "text"; // Change back from password
+                        messageInput.placeholder = "Verifying...";
+                        verifyCredentials();
                         break;
-                    case 'LOGIN_BOT_FAILED':
-                        // Retry initiated by user typing again
-                        botReply = "Provide Email:";
-                        nextState = 'LOGIN_BOT_AWAIT_EMAIL';
-                        placeholder = "Enter your admin email...";
-                        break;
+                    case 'LOGIN_FAILED': // Allow retry after failure
+                         loginState = 'AWAITING_EMAIL';
+                         displayMessage('bot', "Provide Email:");
+                         messageInput.placeholder = "Enter your admin email...";
+                         break;
+                    // Ignore input if already LOGGED_IN or VERIFYING
+                    case 'LOGGED_IN':
+                    case 'VERIFYING':
+                         console.warn("Input ignored during state:", loginState);
+                         break;
                 }
-
-                appState = nextState;
-                if(botReply) displayMessage('bot', botReply);
-                messageInput.type = inputType;
-                messageInput.placeholder = placeholder;
-
-                // Re-enable input only if not verifying
-                if (appState !== 'LOGIN_BOT_VERIFYING') {
-                    messageInput.disabled = false;
-                    sendButton.disabled = false;
-                    messageInput.focus();
-                }
-            }, 600); // Bot response delay
+                 // Re-enable input unless verifying or logged in
+                 if (loginState !== 'VERIFYING' && loginState !== 'LOGGED_IN') {
+                      messageInput.disabled = false;
+                      sendButton.disabled = false;
+                      messageInput.focus();
+                 }
+            }, 500); // 0.5 second delay
         }
 
         function verifyCredentials() {
             if (tempEmail === ADMIN_EMAIL && tempPassword === ADMIN_PASSWORD) {
+                // Credentials match the hardcoded ones, now try Firebase sign-in
                 signInWithEmailAndPassword(auth, tempEmail, tempPassword)
-                    .then(() => {
-                        // Success! onAuthStateChanged will handle the UI transition
-                        console.log("Firebase sign-in initiated.");
-                        // Don't change appState here, let onAuthStateChanged do it.
+                    .then((userCredential) => {
+                        // Sign in successful! onAuthStateChanged will handle activating admin mode.
+                        console.log("Firebase Sign-in successful after bot verification.");
+                        loginState = 'VERIFYING'; // Keep state until onAuthStateChanged confirms
+                        displayMessage('bot', "Admin Login Successful!");
+                        displayMessage('bot', "Connecting to User Panel...");
+                        // Let onAuthStateChanged trigger activateAdminMode
                     })
                     .catch((error) => {
+                        // Firebase sign-in failed even if hardcoded credentials matched
+                        // (e.g., user disabled, network error)
                         console.error("Firebase Sign-in Error:", error);
-                        displayMessage('bot', `Login failed: ${error.code || error.message}. Send a message to retry.`);
-                        appState = 'LOGIN_BOT_FAILED';
-                        messageInput.type = "text"; // Reset type
-                        messageInput.placeholder = "Type to retry login...";
-                        messageInput.disabled = false; // Enable for retry
+                        displayMessage('bot', `Login failed: ${error.message}. Please try again.`);
+                        loginState = 'LOGIN_FAILED';
+                        messageInput.disabled = false;
                         sendButton.disabled = false;
+                        messageInput.placeholder = "Type email again to retry...";
                     });
+
             } else {
-                // Hardcoded credentials mismatch
-                 botMessageTimeout = setTimeout(() => { // Delay before showing failure
-                     displayMessage('bot', "Invalid credentials. Send a message to retry.");
-                     appState = 'LOGIN_BOT_FAILED';
-                     messageInput.type = "text"; // Reset type
-                     messageInput.placeholder = "Type to retry login...";
-                     messageInput.disabled = false; // Enable for retry
-                     sendButton.disabled = false;
-                     messageInput.focus();
-                 }, 500);
+                // Hardcoded credentials didn't match
+                displayMessage('bot', "Invalid credentials. Please try again.");
+                loginState = 'LOGIN_FAILED';
+                messageInput.disabled = false;
+                sendButton.disabled = false;
+                messageInput.placeholder = "Type email again to retry...";
             }
         }
 
-        // --- Core Event Handlers ---
-        function handleSendButtonClick() {
-            if (appState.startsWith('LOGIN_BOT_')) {
-                handleLoginBotInput();
-            } else if (appState === 'ADMIN_CHAT_SELECTED') {
-                sendAdminMessageToUser();
-            } else if (appState === 'ADMIN_IDLE') {
-                 alert("Please select a user from the list to send a message.");
+
+        // --- Admin Mode Activation/Deactivation ---
+        function activateAdminMode(isAutoLogin = false) {
+            console.log("Activating Admin Mode...");
+            loginState = 'LOGGED_IN';
+            messagesDiv.innerHTML = ''; // Clear login chat
+            messageInput.placeholder = "Type your reply...";
+            messageInput.disabled = true; // Keep disabled until user selected
+            sendButton.disabled = true;
+            messageInput.type = "text";
+
+            // Show Admin UI elements
+            adminSidebar.classList.remove('hidden');
+            mainChatHeader.classList.remove('login-mode');
+            userStatusDiv.classList.remove('hidden');
+            mainChatActions.classList.remove('hidden');
+
+            // Setup Admin Panel (Load users, attach listeners)
+            if(currentAdminUser) {
+                 adminEmailDisplay.textContent = currentAdminUser.email;
             }
+            loadUserListAndListeners(); // Load users and attach global listeners
+            updateMuteButtonUI();
+            setAdminOnlineStatus(true);
+
+            // Update header title
+            currentChatUserNameH2.textContent = "Select a User"; // Initial state after login
         }
 
-        function handleInputKeydown(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSendButtonClick(); // Trigger send/login logic
-            } else if (appState === 'ADMIN_CHAT_SELECTED') {
-                handleAdminTyping(); // Trigger typing indicator only when chatting with user
-            }
-        }
+         function deactivateAdminMode() {
+             console.log("Deactivating Admin Mode, returning to login.");
+             loginState = 'AWAITING_INITIATION'; // Reset state
+             setAdminOnlineStatus(false); // Set offline
+             cleanupAdminListeners(); // Detach all listeners
 
-         function handleLogout() {
-             if(confirm("Are you sure you want to logout?")) {
-                setAdminOnlineStatus(false); // Set offline before signing out
-                signOut(auth).catch((error) => {
-                    console.error("Sign Out Error:", error);
-                    // Auth state listener will still trigger UI change
-                });
-             }
+             // Hide Admin UI elements
+             adminSidebar.classList.add('hidden');
+             mainChatHeader.classList.add('login-mode');
+             userStatusDiv.classList.add('hidden');
+             mainChatActions.classList.add('hidden');
+             clearChatView(); // Clear selected chat specific UI
+
+             // Reset header title
+             currentChatUserNameH2.textContent = "Admin Login";
+             adminEmailDisplay.textContent = ''; // Clear logged in email
+
+             // Start the bot conversation again
+             startLoginBotConversation();
          }
 
 
-        // --- Unified Message Display ---
-        function displayMessage(senderType, text, timestamp = null, msgId = null, seenByAdmin = false) {
-            // senderType: 'bot', 'sent' (admin), 'received' (user)
+        function handleLogout() {
+             signOut(auth).catch((error) => {
+                 console.error("Sign Out Error:", error);
+                 alert("Error signing out.");
+             });
+             // onAuthStateChanged will handle UI changes (calling deactivateAdminMode)
+        }
+
+         function setAdminOnlineStatus(isOnline) {
+             // Now uses currentAdminUser state variable
+             if (currentAdminUser) {
+                 set(ref(db, 'adminStatus/online'), isOnline);
+                 set(ref(db, 'adminStatus/lastSeen'), serverTimestamp());
+                 // Set offline on disconnect
+                 onDisconnect(ref(db, 'adminStatus/online')).set(false);
+                 onDisconnect(ref(db, 'adminStatus/lastSeen')).set(serverTimestamp());
+             } else if (!isOnline) {
+                  // If logging out and currentAdminUser is already null, still try to set offline
+                  set(ref(db, 'adminStatus/online'), false);
+                  set(ref(db, 'adminStatus/lastSeen'), serverTimestamp());
+             }
+        }
+
+        // --- DISPLAY MESSAGES (Unified for Bot/Admin/User) ---
+        function displayMessage(sender, text, timestamp, msgId = null, seenByAdmin = false) {
             const wrapper = document.createElement('div');
-            wrapper.classList.add('message-wrapper', senderType);
+            wrapper.classList.add('message-wrapper', sender); // sender = 'bot', 'sent' (admin), 'received' (user)
             if (msgId) wrapper.id = `msg-${msgId}`;
 
             const p = document.createElement('p');
-            p.textContent = text;
+            p.textContent = text; // Use textContent for security
 
             const timeSpan = document.createElement('span');
             timeSpan.classList.add('timestamp');
-            // Timestamps only for non-bot messages
-            if (senderType !== 'bot') {
-                timeSpan.textContent = timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-                // Seen logic only for 'received' (user) messages
-                if (senderType === 'received') {
-                    wrapper.classList.toggle('seen', seenByAdmin);
-                }
+            // Show timestamp only for user/admin messages, not bot
+            if (sender === 'sent' || sender === 'received') {
+                 timeSpan.textContent = timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                  // Add seen checkmark logic only for 'received' (user) messages
+                  if (sender === 'received') {
+                      if (seenByAdmin) {
+                          wrapper.classList.add('seen');
+                      }
+                  }
             } else {
                  timeSpan.textContent = ''; // No timestamp for bot
             }
+
 
             wrapper.appendChild(p);
             wrapper.appendChild(timeSpan);
@@ -626,228 +694,602 @@
             scrollToBottom();
         }
 
-        function scrollToBottom() { // Same as v2
+        function scrollToBottom() {
             clearTimeout(window.scrollTimeout);
-            window.scrollTimeout = setTimeout(() => { messagesDiv.scrollTop = messagesDiv.scrollHeight; }, 50);
+            window.scrollTimeout = setTimeout(() => {
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }, 50);
         }
 
-        // --- Admin Functionality (Requires appState === 'ADMIN_ACTIVE' or 'ADMIN_CHAT_SELECTED') ---
 
-        // Function to load user list and attach listeners (called when switching to admin mode)
-        function loadUserListAndListeners() { /* Reuse logic from previous admin_panel_v2.html */
-             // Ensure cleanup first
-             cleanupAdminListeners();
-             currentUserList = {};
+        // --- Admin Functionality (Adapted from previous admin.js) ---
 
-             const usersQuery = query(chatsRef, orderByChild('metadata/lastActive'));
+        function loadUserListAndListeners() {
+            // Clear existing list and cache before loading
+            userListUL.innerHTML = '';
+            cleanupAdminListeners(); // Ensure no old listeners remain
+            currentUserList = {};
 
-             currentUserList.mainListener = onValue(usersQuery, (snapshot) => {
-                 const users = [];
-                 snapshot.forEach((childSnapshot) => {
-                     const userId = childSnapshot.key;
-                     const userData = childSnapshot.val();
-                     if (userData?.metadata) {
-                         users.push({ userId, userName: userData.metadata.userName || 'User', lastActive: userData.metadata.lastActive || 0 });
-                         if (!currentUserList[userId]) {
-                             currentUserList[userId] = { userName: userData.metadata.userName || 'User', unreadCount: 0, listenersAttached: false };
-                         } else {
-                             currentUserList[userId].userName = userData.metadata.userName || 'User';
-                         }
+            const usersQuery = query(chatsRef, orderByChild('metadata/lastActive'));
+
+            // Use onValue to get initial list and listen for sorting/metadata changes
+            currentUserList.mainListener = onValue(usersQuery, (snapshot) => {
+                const users = [];
+                snapshot.forEach((childSnapshot) => {
+                    const userId = childSnapshot.key;
+                    const userData = childSnapshot.val();
+                    if (userData?.metadata) {
+                        users.push({
+                            userId: userId,
+                            userName: userData.metadata.userName || 'Unknown User',
+                            lastActive: userData.metadata.lastActive || 0
+                        });
+
+                        // Initialize or update user cache
+                        if (!currentUserList[userId]) {
+                            currentUserList[userId] = {
+                                userName: userData.metadata.userName || 'Unknown User',
+                                unreadCount: 0,
+                                listenersAttached: false // Flag to control listener attachment
+                            };
+                        } else {
+                            currentUserList[userId].userName = userData.metadata.userName || 'Unknown User';
+                        }
+
+                        // Attach individual listeners if not already done
                          if (!currentUserList[userId].listenersAttached) {
                              attachUserSpecificListeners(userId);
                              currentUserList[userId].listenersAttached = true;
                          }
-                     }
-                 });
-                 users.sort((a, b) => b.lastActive - a.lastActive);
-                 userListUL.innerHTML = '';
-                 users.forEach(user => {
-                     displayUserInList(user.userId, user.userName);
-                     updateUnreadIndicator(user.userId, currentUserList[user.userId]?.unreadCount || 0);
-                 });
-                 if (selectedUserId && document.getElementById(`user-${selectedUserId}`)) {
-                     document.getElementById(`user-${selectedUserId}`).classList.add('active');
-                 }
-             }, (error) => console.error("Error loading user list:", error));
+                    }
+                });
 
+                users.sort((a, b) => b.lastActive - a.lastActive);
+
+                userListUL.innerHTML = ''; // Clear UI list
+                users.forEach(user => {
+                    displayUserInList(user.userId, user.userName);
+                    updateUnreadIndicator(user.userId, currentUserList[user.userId]?.unreadCount || 0);
+                });
+
+                // Re-select if active
+                if (selectedUserId && document.getElementById(`user-${selectedUserId}`)) {
+                    document.getElementById(`user-${selectedUserId}`).classList.add('active');
+                }
+            }, (error) => console.error("Error loading user list:", error));
+
+            // Attach global listeners (for calls etc.) only ONCE
              if (!globalListenersAttached) {
                  attachGlobalChangeListeners();
                  globalListenersAttached = true;
              }
         }
 
-        // Function to display a single user in the list
-        function displayUserInList(userId, userName) { /* Reuse logic from previous admin_panel_v2.html */
-            const li = document.createElement('li'); li.id = `user-${userId}`; li.dataset.userId = userId;
-            const nameSpan = document.createElement('span'); nameSpan.classList.add('user-name'); nameSpan.textContent = userName; li.appendChild(nameSpan);
-            const unreadIndicator = document.createElement('span'); unreadIndicator.classList.add('unread-indicator'); li.appendChild(unreadIndicator);
-            li.onclick = () => selectUserChat(userId); userListUL.appendChild(li);
+        function displayUserInList(userId, userName) {
+            // (Same as previous admin.html version)
+             const li = document.createElement('li');
+             li.id = `user-${userId}`;
+             li.dataset.userId = userId;
+             const nameSpan = document.createElement('span');
+             nameSpan.classList.add('user-name');
+             nameSpan.textContent = userName;
+             li.appendChild(nameSpan);
+             const unreadIndicator = document.createElement('span');
+             unreadIndicator.classList.add('unread-indicator');
+             li.appendChild(unreadIndicator);
+             li.onclick = () => selectUserChat(userId);
+             userListUL.appendChild(li);
         }
 
-        // Function to attach listeners for a specific user (messages, status, call)
-        function attachUserSpecificListeners(userId) { /* Reuse logic from previous admin_panel_v2.html */
-              if (!currentUserList[userId]) return;
-              const userCache = currentUserList[userId];
-              const messagesQuery = query(ref(db, `chats/${userId}/messages`), orderByChild('timestamp'), limitToLast(1));
+         function attachUserSpecificListeners(userId) {
+             if (!currentUserList[userId]) return;
 
-              userCache.messageListener = onChildAdded(messagesQuery, (snapshot) => {
-                  const msgId = snapshot.key; const msg = snapshot.val();
-                  if (msg && !document.getElementById(`msg-${msgId}`)) {
+             const userCache = currentUserList[userId];
+             const userMessagesRef = ref(db, `chats/${userId}/messages`);
+             const userStatusRef = ref(db, `chats/${userId}/status`);
+             const userCallRef = ref(db, `chats/${userId}/call`);
+
+             // --- Message Listener (Only for *new* messages using child_added) ---
+             const messagesQuery = query(userMessagesRef, orderByChild('timestamp'), limitToLast(1)); // Listen only to the latest potential addition
+             userCache.messageListener = onChildAdded(messagesQuery, (snapshot) => {
+                  const messageId = snapshot.key;
+                  const msg = snapshot.val();
+                  // Check if message already processed (simple check based on element ID)
+                  if (msg && !document.getElementById(`msg-${messageId}`)) {
                       if (userId === selectedUserId) {
-                          displayMessage('received', msg.text, msg.timestamp, msgId, msg.seenByAdmin);
-                          if (msg.sender === 'user' && !msg.seenByAdmin) markMessageAsSeen(userId, msgId);
-                      } else if (msg.sender === 'user') {
-                          userCache.unreadCount = (userCache.unreadCount || 0) + 1;
-                          updateUnreadIndicator(userId, userCache.unreadCount);
-                          if (!isMuted) showNotification(`New message from ${userCache.userName}`);
-                      }
+                           displayMessage('received', msg.text, msg.timestamp, messageId, msg.seenByAdmin);
+                           if (msg.sender === 'user' && !msg.seenByAdmin) {
+                               markMessageAsSeen(userId, messageId);
+                           }
+                       } else if (msg.sender === 'user') {
+                           userCache.unreadCount = (userCache.unreadCount || 0) + 1;
+                           updateUnreadIndicator(userId, userCache.unreadCount);
+                           if (!isMuted) {
+                                showNotification(`New message from ${userCache.userName}`);
+                           }
+                       }
                   }
-              });
-              userCache.statusListener = onValue(ref(db, `chats/${userId}/status`), (snapshot) => { if (userId === selectedUserId) updateUserStatusUI(snapshot.val()); });
-              userCache.callListener = onValue(ref(db, `chats/${userId}/call`), (snapshot) => { if (userId === selectedUserId) updateAdminCallUI(snapshot.val(), userId, userCache.userName); });
-        }
+             }, (error) => console.error(`Error listening to messages for ${userId}:`, error));
 
-        // Function to attach global listeners (e.g., for incoming calls)
-        function attachGlobalChangeListeners() { /* Reuse logic from previous admin_panel_v2.html */
-             onChildChanged(chatsRef, (snapshot) => {
-                 const userId = snapshot.key; const changedData = snapshot.val();
-                 if (changedData?.call?.state === 'ringing' && changedData.call.initiator === 'user' && userId !== selectedUserId) {
-                      handleIncomingCall(userId, changedData.metadata?.userName || changedData.call?.userName || 'User');
+             // --- Status Listener ---
+             userCache.statusListener = onValue(userStatusRef, (snapshot) => {
+                  if (userId === selectedUserId) updateUserStatusUI(snapshot.val());
+             }, error => console.error(`Error listening to status for ${userId}:`, error));
+
+             // --- Call Listener ---
+             userCache.callListener = onValue(userCallRef, (snapshot) => {
+                  // This listener handles calls for the *selected* user primarily
+                  if (userId === selectedUserId) {
+                      updateAdminCallUI(snapshot.val(), userId, userCache.userName);
+                  }
+             }, error => console.error(`Error listening to call status for ${userId}:`, error));
+         }
+
+         function attachGlobalChangeListeners() {
+            // Listen for changes to *any* chat (like incoming calls for non-selected users)
+            onChildChanged(chatsRef, (snapshot) => {
+                 const userId = snapshot.key;
+                 const changedData = snapshot.val();
+
+                 // Global check for incoming calls
+                 if (changedData?.call?.state === 'ringing' && changedData.call.initiator === 'user') {
+                     if (userId !== selectedUserId) { // Only handle if not the selected user
+                          const userName = changedData.metadata?.userName || changedData.call?.userName || 'Unknown User';
+                          handleIncomingCall(userId, userName);
+                     }
+                 }
+                 // Note: Metadata changes (like username) are handled by the main `onValue` listener in loadUserListAndListeners
+            });
+         }
+
+         function cleanupAdminListeners() {
+             // Detach the main user list listener
+             if (currentUserList.mainListener) {
+                 off(query(chatsRef, orderByChild('metadata/lastActive')), 'value', currentUserList.mainListener);
+                 currentUserList.mainListener = null;
+             }
+             // Detach all user-specific listeners
+             Object.keys(currentUserList).forEach(userId => {
+                 if (typeof userId === 'string' && currentUserList[userId]) { // Check key is userId and object exists
+                      detachUserSpecificListeners(userId);
                  }
              });
-        }
+              // Detach global listeners if they were attached
+              off(chatsRef, 'child_changed'); // Detach specific global listener
+              globalListenersAttached = false;
+              currentUserList = {}; // Clear user list cache
+         }
 
-        // Function to clean up all listeners
-        function cleanupAdminListeners() { /* Reuse logic from previous admin_panel_v2.html */
-            if (currentUserList.mainListener) { off(query(chatsRef, orderByChild('metadata/lastActive')), 'value', currentUserList.mainListener); currentUserList.mainListener = null; }
-            Object.keys(currentUserList).forEach(userId => { if (typeof userId === 'string' && currentUserList[userId]) detachUserSpecificListeners(userId); });
-            off(chatsRef, 'child_changed'); globalListenersAttached = false; currentUserList = {};
-        }
+         function detachUserSpecificListeners(userId) {
+              const userCache = currentUserList[userId];
+              if (!userCache) return;
+              if (userCache.messageListener) off(ref(db, `chats/${userId}/messages`), 'child_added', userCache.messageListener);
+              if (userCache.statusListener) off(ref(db, `chats/${userId}/status`), 'value', userCache.statusListener);
+              if (userCache.callListener) off(ref(db, `chats/${userId}/call`), 'value', userCache.callListener);
+              userCache.messageListener = null;
+              userCache.statusListener = null;
+              userCache.callListener = null;
+              userCache.listenersAttached = false; // Reset flag
+         }
 
-        // Function to detach listeners for a specific user
-        function detachUserSpecificListeners(userId) { /* Reuse logic from previous admin_panel_v2.html */
-             const userCache = currentUserList[userId]; if (!userCache) return;
-             if (userCache.messageListener) off(ref(db, `chats/${userId}/messages`), 'child_added', userCache.messageListener);
-             if (userCache.statusListener) off(ref(db, `chats/${userId}/status`), 'value', userCache.statusListener);
-             if (userCache.callListener) off(ref(db, `chats/${userId}/call`), 'value', userCache.callListener);
-             userCache.messageListener = null; userCache.statusListener = null; userCache.callListener = null; userCache.listenersAttached = false;
-        }
 
-        // Function called when a user is selected from the list
-        function selectUserChat(userId) { /* Reuse logic from previous admin_panel_v2.html */
-            if (!currentUserList[userId] || !appState.startsWith('ADMIN_')) return;
+        function selectUserChat(userId) {
+            if (!currentUserList[userId] || loginState !== 'LOGGED_IN') return;
             if (selectedUserId === userId) return;
-            if (selectedUserId) { const prevLi = document.getElementById(`user-${selectedUserId}`); if (prevLi) prevLi.classList.remove('active'); }
-            selectedUserId = userId; appState = 'ADMIN_CHAT_SELECTED';
-            const currLi = document.getElementById(`user-${selectedUserId}`); if (currLi) currLi.classList.add('active');
-            currentUserList[userId].unreadCount = 0; updateUnreadIndicator(userId, 0);
+
+            console.log("Selecting chat for admin:", userId);
+
+            // Deactivate previous selection
+            if (selectedUserId) {
+                const previousLi = document.getElementById(`user-${selectedUserId}`);
+                if (previousLi) previousLi.classList.remove('active');
+                // Note: We keep individual user listeners attached, just update UI based on selection
+            }
+
+            selectedUserId = userId;
+            const currentLi = document.getElementById(`user-${selectedUserId}`);
+            if (currentLi) currentLi.classList.add('active');
+
+            currentUserList[userId].unreadCount = 0;
+            updateUnreadIndicator(userId, 0);
+
             loadChatForSelectedUser(userId);
-            messageInput.disabled = false; sendButton.disabled = false; blockUserButton.disabled = false; deleteChatButton.disabled = false; exportChatButton.disabled = false; messageInput.focus(); messageInput.placeholder = "Type your reply...";
+
+            messageInput.disabled = false;
+            sendButton.disabled = false;
+            blockUserButton.disabled = false;
+            deleteChatButton.disabled = false;
+            exportChatButton.disabled = false;
+            messageInput.focus();
         }
 
-        // Function to load chat history for the selected user
-        function loadChatForSelectedUser(userId) { /* Reuse logic from previous admin_panel_v2.html */
-             messagesDiv.innerHTML = ''; typingIndicatorDiv.textContent = ''; hideAllCallNotifications();
-             const userData = currentUserList[userId]; currentChatUserNameH2.textContent = userData?.userName || 'User';
-             updateBlockButtonUI(userId);
+        function loadChatForSelectedUser(userId) {
+            messagesDiv.innerHTML = '';
+            typingIndicatorDiv.textContent = '';
+            hideAllCallNotifications(); // Clear existing notifications
+
+            const userData = currentUserList[userId];
+            currentChatUserNameH2.textContent = userData?.userName || 'Loading...';
+            updateBlockButtonUI(userId);
+
+            // Trigger immediate UI update for status and call state using existing listeners
              onValue(ref(db, `chats/${userId}/status`), (snap) => updateUserStatusUI(snap.val()), { onlyOnce: true });
              onValue(ref(db, `chats/${userId}/call`), (snap) => updateAdminCallUI(snap.val(), userId, userData?.userName), { onlyOnce: true });
-             const messagesQuery = query(ref(db, `chats/${userId}/messages`), orderByChild('timestamp'), limitToLast(50));
-             onValue(messagesQuery, (snapshot) => {
-                 messagesDiv.innerHTML = ''; if (!snapshot.exists()) { messagesDiv.innerHTML = '<p style="text-align:center; color:#ccc;">No messages.</p>'; return; }
-                 let messagesToMarkSeen = [];
-                 snapshot.forEach((cs) => {
-                     const msg = cs.val(); const msgId = cs.key;
-                     displayMessage(msg.sender === 'admin' ? 'sent' : 'received', msg.text, msg.timestamp, msgId, msg.seenByAdmin);
-                     if (msg.sender === 'user' && !msg.seenByAdmin) messagesToMarkSeen.push(msgId);
-                 });
-                 scrollToBottom(); if (messagesToMarkSeen.length > 0) markMultipleMessagesAsSeen(userId, messagesToMarkSeen);
-             }, { onlyOnce: true });
+
+            // Load initial batch of messages and mark as seen
+            const messagesQuery = query(ref(db, `chats/${userId}/messages`), orderByChild('timestamp'), limitToLast(50));
+            onValue(messagesQuery, (snapshot) => {
+                messagesDiv.innerHTML = ''; // Clear before adding
+                if (!snapshot.exists()) {
+                    messagesDiv.innerHTML = '<p style="text-align:center; color:#ccc; margin-top: 20px;">No messages yet.</p>';
+                    return;
+                }
+                let messagesToMarkSeen = [];
+                snapshot.forEach((childSnapshot) => {
+                    const msg = childSnapshot.val();
+                    const msgId = childSnapshot.key;
+                    displayMessage('received', msg.text, msg.timestamp, msgId, msg.seenByAdmin); // Display as received from user
+                    if (msg.sender === 'user' && !msg.seenByAdmin) {
+                        messagesToMarkSeen.push(msgId);
+                    }
+                });
+                 scrollToBottom();
+                 if (messagesToMarkSeen.length > 0) {
+                     markMultipleMessagesAsSeen(userId, messagesToMarkSeen);
+                 }
+            }, { onlyOnce: true });
         }
 
-        // Function to update the status UI (online/typing) for the selected user
-        function updateUserStatusUI(status) { /* Reuse logic from previous admin_panel_v2.html */
-            if (!selectedUserId || !appState.startsWith('ADMIN_')) { userStatusDiv.classList.add('hidden'); typingIndicatorDiv.textContent = ''; return; };
-            userStatusDiv.classList.remove('hidden');
+        function clearChatView() {
+            // Reset the chat area when no user is selected or during logout
+            selectedUserId = null;
+            messagesDiv.innerHTML = '';
+            currentChatUserNameH2.textContent = loginState === 'LOGGED_IN' ? "Select a User" : "Admin Login";
+            typingIndicatorDiv.textContent = '';
+            hideAllCallNotifications();
+            messageInput.value = '';
+            messageInput.disabled = (loginState !== 'LOGGED_IN');
+            sendButton.disabled = (loginState !== 'LOGGED_IN');
+            blockUserButton.disabled = true;
+            deleteChatButton.disabled = true;
+            exportChatButton.disabled = true;
+            userStatusDiv.classList.add('hidden'); // Hide user status dot area
+
+             // Deactivate any active user in the list
+             const activeLi = userListUL.querySelector('.active');
+             if (activeLi) activeLi.classList.remove('active');
+        }
+
+        function updateUserStatusUI(status) {
+            if (!selectedUserId || loginState !== 'LOGGED_IN') {
+                 userStatusDiv.classList.add('hidden');
+                 typingIndicatorDiv.textContent = '';
+                 return;
+            };
+
+            userStatusDiv.classList.remove('hidden'); // Show the status area
             const userData = currentUserList[selectedUserId];
              if (status) {
                  const isOnline = status.userOnline || false;
-                 userStatusSpan.classList.toggle('online', isOnline); userStatusSpan.classList.toggle('offline', !isOnline);
-                 userStatusSpan.parentElement.childNodes[0].nodeValue = isOnline ? 'User: Online ' : 'User: Offline '; userStatusSpan.title = isOnline ? 'Online' : 'Offline';
+                 userStatusSpan.classList.toggle('online', isOnline);
+                 userStatusSpan.classList.toggle('offline', !isOnline);
+                 userStatusSpan.parentElement.childNodes[0].nodeValue = isOnline ? 'User: Online ' : 'User: Offline ';
+                 userStatusSpan.title = isOnline ? 'Online' : 'Offline';
                  typingIndicatorDiv.textContent = status.userTyping ? `${userData?.userName || 'User'} is typing...` : '';
              } else {
-                 userStatusSpan.classList.remove('online'); userStatusSpan.classList.add('offline');
-                 userStatusSpan.parentElement.childNodes[0].nodeValue = 'User: Offline '; userStatusSpan.title = 'Offline'; typingIndicatorDiv.textContent = '';
+                 userStatusSpan.classList.remove('online');
+                 userStatusSpan.classList.add('offline');
+                 userStatusSpan.parentElement.childNodes[0].nodeValue = 'User: Offline ';
+                 userStatusSpan.title = 'Offline';
+                 typingIndicatorDiv.textContent = '';
              }
-        }
+         }
 
-        // Function for admin to send a message
-        function sendAdminMessageToUser() { /* Reuse logic from previous admin_panel_v2.html */
-             if (!selectedUserId || !appState.startsWith('ADMIN_')) return;
+         // --- Admin Sending Message ---
+         function handleAdminSend() {
+             if (loginState !== 'LOGGED_IN') {
+                 handleLoginInput(); // Use the input for login flow
+                 return;
+             }
+             if (!selectedUserId) {
+                  alert("Please select a user chat first.");
+                  return;
+             }
+             // Proceed to send message to the selected user
              const msgText = messageInput.value.trim();
              if (msgText) {
-                 messageInput.value = ''; messageInput.focus();
-                 const messageData = { sender: 'admin', text: msgText, timestamp: serverTimestamp(), seenByAdmin: true };
-                 const msgRef = push(ref(db, `chats/${selectedUserId}/messages`), messageData);
-                 // Display sent message locally immediately
-                 displayMessage('sent', msgText, Date.now(), msgRef.key, true); // Use local time approx.
-                 set(ref(db, `chats/${selectedUserId}/status/adminTyping`), false); clearTimeout(typingTimeout);
-                 update(ref(db, `chats/${selectedUserId}/metadata`), { lastActive: serverTimestamp() });
+                 messageInput.value = '';
+                 messageInput.focus();
+
+                 const messageData = {
+                     sender: 'admin',
+                     text: msgText,
+                     timestamp: serverTimestamp(),
+                     seenByAdmin: true
+                 };
+                 const userMessagesRef = ref(db, `chats/${selectedUserId}/messages`);
+                 push(userMessagesRef, messageData)
+                     .then(() => {
+                         displayMessage('sent', msgText, messageData.timestamp, null, true); // Display admin's own message
+                         set(ref(db, `chats/${selectedUserId}/status/adminTyping`), false);
+                         clearTimeout(typingTimeout);
+                         update(ref(db, `chats/${selectedUserId}/metadata`), { lastActive: serverTimestamp() });
+                     })
+                     .catch(error => {
+                         console.error("Error sending admin message: ", error);
+                         messageInput.value = msgText; // Restore text
+                         alert("Failed to send message.");
+                     });
              }
-        }
+         }
 
-        // Function to handle admin typing indicator
-        function handleAdminTyping() { /* Reuse logic from previous admin_panel_v2.html */
-             if (!selectedUserId || !appState.startsWith('ADMIN_')) return;
-             set(ref(db, `chats/${selectedUserId}/status/adminTyping`), true); clearTimeout(typingTimeout);
-             typingTimeout = setTimeout(() => { set(ref(db, `chats/${selectedUserId}/status/adminTyping`), false); }, 2000);
-        }
+         // --- Typing Indicator (Admin) ---
+         function handleAdminTyping() {
+             if (loginState !== 'LOGGED_IN' || !selectedUserId) return;
+             const adminTypingRef = ref(db, `chats/${selectedUserId}/status/adminTyping`);
+             set(adminTypingRef, true);
+             clearTimeout(typingTimeout);
+             typingTimeout = setTimeout(() => {
+                 set(adminTypingRef, false);
+             }, 2000);
+         }
 
-        // Functions for marking messages as seen
-        function markMessageAsSeen(userId, msgId) { /* Reuse logic from previous admin_panel_v2.html */
-             if (userId !== selectedUserId || !msgId) return;
-             update(ref(db, `chats/${userId}/messages/${messageId}`), { seenByAdmin: true })
-             .then(() => { const el = document.getElementById(`msg-${msgId}`); if (el) el.classList.add('seen'); })
-             .catch(e => console.error("Seen error:", e));
-        }
-        function markMultipleMessagesAsSeen(userId, msgIds) { /* Reuse logic from previous admin_panel_v2.html */
-            if (userId !== selectedUserId || msgIds.length === 0) return; const updates = {};
-            msgIds.forEach(id => { updates[`chats/${userId}/messages/${id}/seenByAdmin`] = true; });
-            update(ref(db), updates).then(() => { msgIds.forEach(id => { const el = document.getElementById(`msg-${id}`); if (el) el.classList.add('seen'); }); });
-        }
+         function handleInputKeyDown(e) {
+             if (loginState !== 'LOGGED_IN') {
+                  if (e.key === 'Enter') handleAdminSend(); // Trigger login flow on Enter
+             } else {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleAdminSend(); // Trigger message send to user
+                  } else {
+                      handleAdminTyping(); // Trigger typing indicator update
+                  }
+             }
+         }
 
-        // Function to update the unread indicator in the user list
-        function updateUnreadIndicator(userId, count) { /* Reuse logic from previous admin_panel_v2.html */
-             const li = document.getElementById(`user-${userId}`); if (!li) return;
-             const indicator = li.querySelector('.unread-indicator'); if (!indicator) return;
-             indicator.textContent = count > 0 ? (count > 9 ? '9+' : count) : '';
-             indicator.classList.toggle('visible', count > 0);
-        }
+         // --- Seen Status ---
+          function markMessageAsSeen(userId, messageId) {
+              if (userId !== selectedUserId || !messageId) return;
+              const msgRef = ref(db, `chats/${userId}/messages/${messageId}`);
+              update(msgRef, { seenByAdmin: true })
+              .then(() => {
+                  const msgElement = document.getElementById(`msg-${messageId}`);
+                  if (msgElement && !msgElement.classList.contains('seen')) {
+                      msgElement.classList.add('seen');
+                  }
+              })
+              .catch(error => console.error(`Error marking message ${messageId} as seen:`, error));
+         }
+         function markMultipleMessagesAsSeen(userId, messageIds) {
+              if (userId !== selectedUserId || messageIds.length === 0) return;
+              const updates = {};
+              messageIds.forEach(msgId => { updates[`chats/${userId}/messages/${msgId}/seenByAdmin`] = true; });
+              update(ref(db), updates)
+               .then(() => {
+                   messageIds.forEach(msgId => {
+                       const msgElement = document.getElementById(`msg-${msgId}`);
+                       if (msgElement && !msgElement.classList.contains('seen')) {
+                           msgElement.classList.add('seen');
+                       }
+                   });
+               })
+               .catch(error => console.error("Error bulk marking messages as seen:", error));
+         }
+         function updateUnreadIndicator(userId, count) {
+             // (Same as previous admin.html version)
+              const li = document.getElementById(`user-${userId}`);
+              if (li) {
+                  const indicator = li.querySelector('.unread-indicator');
+                  if (indicator) {
+                      if (count > 0) {
+                           indicator.textContent = count > 9 ? '9+' : count;
+                           indicator.classList.add('visible');
+                      } else {
+                           indicator.textContent = '';
+                           indicator.classList.remove('visible');
+                      }
+                  }
+              }
+         }
 
-        // Functions for chat actions (block, delete, export)
-        function toggleBlockUser() { /* Reuse logic from previous admin_panel_v2.html */ if (!selectedUserId || !appState.startsWith('ADMIN_')) return; onValue(ref(db, `chats/${selectedUserId}/metadata/isBlocked`), (s) => { const blocked = s.val()||false; set(ref(db, `chats/${selectedUserId}/metadata/isBlocked`), !blocked).then(() => {updateBlockButtonUI(selectedUserId); alert(`User ${!blocked?'blocked':'unblocked'}.`);}); }, { onlyOnce: true }); }
-        function updateBlockButtonUI(userId) { /* Reuse logic from previous admin_panel_v2.html */ if (!userId || userId !== selectedUserId || !appState.startsWith('ADMIN_')) { blockUserButton.textContent = 'Block'; blockUserButton.classList.remove('unblock'); blockUserButton.disabled = true; return; } blockUserButton.disabled = false; onValue(ref(db, `chats/${userId}/metadata/isBlocked`), (s) => { const blocked = s.val()||false; blockUserButton.textContent = blocked ? 'Unblock' : 'Block'; blockUserButton.classList.toggle('unblock', blocked); }, { onlyOnce: true }); }
-        function deleteChat() { /* Reuse logic from previous admin_panel_v2.html */ if (!selectedUserId || !appState.startsWith('ADMIN_')) return; const name = currentUserList[selectedUserId]?.userName || 'User'; if (confirm(`DELETE CHAT with ${name}?`)) { remove(ref(db, `chats/${selectedUserId}/messages`)).then(() => { messagesDiv.innerHTML = '<p style="text-align:center; color:#ccc;">Chat deleted.</p>'; alert('Chat deleted.'); }).catch(e => alert('Delete failed.')); }}
-        function exportChat() { /* Reuse logic from previous admin_panel_v2.html */ if (!selectedUserId || !appState.startsWith('ADMIN_')) return; const name = currentUserList[selectedUserId]?.userName || 'User'; const q = query(ref(db, `chats/${selectedUserId}/messages`), orderByChild('timestamp')); onValue(q, (snap) => { if (!snap.exists()) { alert('No messages.'); return; } let txt = `Chat with ${name}\nExported: ${new Date().toLocaleString()}\n\n`; snap.forEach(cs => { const m=cs.val(); txt += `[${m.timestamp?new Date(m.timestamp).toLocaleString():'?'}] ${m.sender==='admin'?'Admin':name}: ${m.text}\n`; }); const blob = new Blob([txt],{type:'text/plain;charset=utf-8'}); const link=document.createElement('a'); link.href=URL.createObjectURL(blob); const safe=name.replace(/[^a-z0-9]/gi,'_'); link.download=`chat_${safe}.txt`; link.click(); URL.revokeObjectURL(link.href); }, { onlyOnce: true }); }
 
-        // Functions for call handling (using notification area)
-        function handleIncomingCall(userId, userName) { /* Reuse logic from previous admin_panel_v2.html */ if (!appState.startsWith('ADMIN_') || document.getElementById(`call-alert-${userId}`)) return; const alertDiv = document.createElement('div'); alertDiv.id = `call-alert-${userId}`; alertDiv.classList.add('call-alert', 'incoming'); alertDiv.innerHTML = `<span>Call from <strong>${userName}</strong>!</span><button class="join">Join</button><button class="reject">Reject</button>`; callNotificationsContainer.appendChild(alertDiv); alertDiv.querySelector('.join').onclick = () => joinIncomingCall(userId, alertDiv); alertDiv.querySelector('.reject').onclick = () => rejectIncomingCall(userId, alertDiv); if (!isMuted) { ringtoneAudio.play().catch(e => {}); showNotification(`Incoming call from ${userName}!`); } else { showNotification(`Call from ${userName} (Muted)`); } }
-        function joinIncomingCall(userId, alertElement) { /* Reuse logic from previous admin_panel_v2.html */ ringtoneAudio.pause(); if (alertElement) alertElement.remove(); update(ref(db, `chats/${userId}/call`), { state: 'active', joinedBy: 'admin', joinTimestamp: serverTimestamp() }); if (userId !== selectedUserId) selectUserChat(userId); showActiveCallUI(userId, currentUserList[userId]?.userName || 'User'); }
-        function rejectIncomingCall(userId, alertElement) { /* Reuse logic from previous admin_panel_v2.html */ ringtoneAudio.pause(); if (alertElement) alertElement.remove(); update(ref(db, `chats/${userId}/call`), { state: 'ended', endedBy: 'admin', endTimestamp: serverTimestamp() }); }
-        function adminEndCall(userId) { /* Reuse logic from previous admin_panel_v2.html */ update(ref(db, `chats/${userId}/call`), { state: 'ended', endedBy: 'admin', endTimestamp: serverTimestamp() }); hideActiveCallUI(userId); }
-        function updateAdminCallUI(callState, userId, userName) { /* Reuse logic from previous admin_panel_v2.html */ if (!appState.startsWith('ADMIN_')) return; const incAlert = document.getElementById(`call-alert-${userId}`); const actAlert = document.getElementById(`call-active-${userId}`); if (callState?.state === 'ringing' && callState.initiator === 'user') { if (!incAlert && !actAlert) handleIncomingCall(userId, userName); } else if (incAlert) { incAlert.remove(); ringtoneAudio.pause(); } if (callState?.state === 'active') { if (!actAlert) showActiveCallUI(userId, userName); } else if (actAlert) { actAlert.remove(); } }
-        function showActiveCallUI(userId, userName) { /* Reuse logic from previous admin_panel_v2.html */ if (document.getElementById(`call-active-${userId}`)) return; const div = document.createElement('div'); div.id = `call-active-${userId}`; div.classList.add('call-alert', 'active'); div.innerHTML = `<span>Call active with <strong>${userName}</strong></span><button class="end">End</button>`; callNotificationsContainer.appendChild(div); div.querySelector('.end').onclick = () => adminEndCall(userId); }
-        function hideActiveCallUI(userId) { /* Reuse logic from previous admin_panel_v2.html */ const div = document.getElementById(`call-active-${userId}`); if (div) div.remove(); }
-        function hideAllCallNotifications() { /* Reuse logic from previous admin_panel_v2.html */ callNotificationsContainer.innerHTML = ''; ringtoneAudio.pause(); }
+         // --- Chat Actions (Block, Delete, Export) ---
+         // (Use functions toggleBlockUser, updateBlockButtonUI, deleteChat, exportChat from previous admin.html, they should work as is)
+         function toggleBlockUser() {
+             if (!selectedUserId || loginState !== 'LOGGED_IN') return;
+             const blockRef = ref(db, `chats/${selectedUserId}/metadata/isBlocked`);
+             onValue(blockRef, (snapshot) => {
+                 const isCurrentlyBlocked = snapshot.val() || false;
+                 set(blockRef, !isCurrentlyBlocked)
+                     .then(() => {
+                         updateBlockButtonUI(selectedUserId);
+                         alert(`User ${!isCurrentlyBlocked ? 'blocked' : 'unblocked'}.`);
+                     })
+                     .catch(error => console.error(`Error toggling block status for ${selectedUserId}:`, error));
+             }, { onlyOnce: true });
+         }
+         function updateBlockButtonUI(userId) {
+             if (!userId || userId !== selectedUserId || loginState !== 'LOGGED_IN') {
+                 blockUserButton.textContent = 'Block';
+                 blockUserButton.classList.remove('unblock');
+                 blockUserButton.disabled = true; return;
+             }
+             blockUserButton.disabled = false;
+             const blockRef = ref(db, `chats/${userId}/metadata/isBlocked`);
+             onValue(blockRef, (snapshot) => {
+                 const isBlocked = snapshot.val() || false;
+                 blockUserButton.textContent = isBlocked ? 'Unblock' : 'Block';
+                 blockUserButton.classList.toggle('unblock', isBlocked);
+             }, { onlyOnce: true });
+         }
+         function deleteChat() {
+             if (!selectedUserId || loginState !== 'LOGGED_IN') return;
+             const userName = currentUserList[selectedUserId]?.userName || selectedUserId;
+             if (confirm(`⚠️ DELETE CHAT with ${userName}? This cannot be undone.`)) {
+                 remove(ref(db, `chats/${selectedUserId}/messages`))
+                     .then(() => {
+                         messagesDiv.innerHTML = '<p style="text-align:center; color:#ccc; margin-top:20px;">Chat history deleted.</p>';
+                         alert('Chat history deleted.');
+                     })
+                     .catch(error => { console.error(`Error deleting chat:`, error); alert('Failed to delete chat.'); });
+             }
+         }
+          function exportChat() {
+              if (!selectedUserId || loginState !== 'LOGGED_IN') return;
+              const userName = currentUserList[selectedUserId]?.userName || selectedUserId;
+              const messagesQuery = query(ref(db, `chats/${selectedUserId}/messages`), orderByChild('timestamp'));
+              onValue(messagesQuery, (snapshot) => {
+                  if (!snapshot.exists()) { alert('No messages to export.'); return; }
+                  let chatText = `Chat History with ${userName} (${selectedUserId})\nExported: ${new Date().toLocaleString()}\n\n`;
+                  snapshot.forEach((cs) => {
+                      const msg = cs.val();
+                      const time = msg.timestamp ? new Date(msg.timestamp).toLocaleString() : '[No Time]';
+                      const sender = msg.sender === 'admin' ? 'Admin' : (userName || 'User');
+                      chatText += `[${time}] ${sender}: ${msg.text}\n`;
+                  });
+                  const blob = new Blob([chatText], { type: 'text/plain;charset=utf-8' });
+                  const link = document.createElement('a');
+                  link.href = URL.createObjectURL(blob);
+                  const safeUser = userName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                  link.download = `chat_${safeUser}_${selectedUserId.substring(0, 6)}.txt`;
+                  link.click(); URL.revokeObjectURL(link.href);
+              }, { onlyOnce: true });
+          }
 
-        // Functions for mute and notifications
-        function toggleMute() { /* Reuse logic from previous admin_panel_v2.html */ isMuted = !isMuted; localStorage.setItem('adminMuted', isMuted); updateMuteButtonUI(); if (isMuted) { ringtoneAudio.pause(); } }
-        function updateMuteButtonUI() { /* Reuse logic from previous admin_panel_v2.html */ muteButton.textContent = isMuted ? 'Unmute Alerts' : 'Mute Alerts'; muteButton.classList.toggle('muted', isMuted); }
-        function requestNotificationPermission() { /* Reuse logic from previous admin_panel_v2.html */ if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') { Notification.requestPermission(); } }
-        function showNotification(message) { /* Reuse logic from previous admin_panel_v2.html */ requestNotificationPermission(); if ('Notification' in window && Notification.permission === 'granted' && document.hidden) { new Notification('Admin Alert', { body: message }); } }
+        // --- Audio Call Handling (Using Notification Area) ---
+         function handleIncomingCall(userId, userName) {
+              if (loginState !== 'LOGGED_IN') return; // Ignore calls if not logged in
+              console.log(`Incoming call notification for ${userName} (${userId})`);
+              // Avoid duplicate notifications for the same call
+              if (document.getElementById(`call-alert-${userId}`)) return;
 
-        // --- Run App ---
-        initializeAppView();
+              const alertDiv = document.createElement('div');
+              alertDiv.id = `call-alert-${userId}`;
+              alertDiv.classList.add('call-alert', 'incoming');
+              alertDiv.innerHTML = `
+                  <span>Incoming call from <strong>${userName}</strong>!</span>
+                  <button class="join">Join</button>
+                  <button class="reject">Reject</button>
+              `;
+              callNotificationsContainer.appendChild(alertDiv);
+
+              alertDiv.querySelector('.join').onclick = () => joinIncomingCall(userId, alertDiv);
+              alertDiv.querySelector('.reject').onclick = () => rejectIncomingCall(userId, alertDiv);
+
+              if (!isMuted) {
+                  ringtoneAudio.play().catch(e => console.warn("Ringtone play failed:", e));
+                  showNotification(`Incoming call from ${userName}!`);
+              } else {
+                  showNotification(`Incoming call from ${userName} (Sound Muted)`);
+              }
+         }
+
+         function joinIncomingCall(userId, alertElement) {
+              console.log(`Admin joining call with ${userId}`);
+              ringtoneAudio.pause(); ringtoneAudio.currentTime = 0;
+              if (alertElement) alertElement.remove(); // Remove incoming alert
+
+              update(ref(db, `chats/${userId}/call`), {
+                  state: 'active', joinedBy: 'admin', joinTimestamp: serverTimestamp()
+              }).catch(error => console.error(`Error joining call:`, error));
+
+              // Switch chat view if necessary
+              if (userId !== selectedUserId) selectUserChat(userId);
+              // The listener will update the UI to show the active call bar
+               showActiveCallUI(userId, currentUserList[userId]?.userName || 'User');
+         }
+
+         function rejectIncomingCall(userId, alertElement) {
+              console.log(`Admin rejecting call from ${userId}`);
+              ringtoneAudio.pause(); ringtoneAudio.currentTime = 0;
+              if (alertElement) alertElement.remove(); // Remove incoming alert
+
+              update(ref(db, `chats/${userId}/call`), {
+                  state: 'ended', endedBy: 'admin', endTimestamp: serverTimestamp()
+              }).catch(error => console.error(`Error rejecting call:`, error));
+         }
+
+         function adminEndCall(userId) {
+              console.log(`Admin ending call with ${userId}`);
+              update(ref(db, `chats/${userId}/call`), {
+                  state: 'ended', endedBy: 'admin', endTimestamp: serverTimestamp()
+              }).catch(error => console.error(`Error ending call:`, error));
+              // Listener update will hide the active call UI
+              hideActiveCallUI(userId);
+         }
+
+          // Updates call UI based on listener data for the *selected* user or shows global alerts
+          function updateAdminCallUI(callState, userId, userName) {
+              if (loginState !== 'LOGGED_IN') return; // Only process if logged in
+
+              const existingIncomingAlert = document.getElementById(`call-alert-${userId}`);
+              const existingActiveAlert = document.getElementById(`call-active-${userId}`);
+
+               // Handle incoming calls
+               if (callState?.state === 'ringing' && callState.initiator === 'user') {
+                    if (!existingIncomingAlert && !existingActiveAlert) { // Show only if no alert exists for this user
+                         handleIncomingCall(userId, userName);
+                    }
+               } else if (existingIncomingAlert) {
+                    // If state is no longer ringing, remove the incoming alert
+                    existingIncomingAlert.remove();
+                    ringtoneAudio.pause(); ringtoneAudio.currentTime = 0;
+               }
+
+                // Handle active calls
+                if (callState?.state === 'active') {
+                     if (!existingActiveAlert) { // Show only if not already shown
+                         showActiveCallUI(userId, userName);
+                     }
+                 } else if (existingActiveAlert) {
+                      // If state is no longer active, remove the active call UI
+                      existingActiveAlert.remove();
+                 }
+          }
+
+
+          function showActiveCallUI(userId, userName) {
+                // Avoid duplicates
+                if (document.getElementById(`call-active-${userId}`)) return;
+
+                const activeDiv = document.createElement('div');
+                activeDiv.id = `call-active-${userId}`;
+                activeDiv.classList.add('call-alert', 'active');
+                activeDiv.innerHTML = `
+                    <span>Call active with <strong>${userName}</strong></span>
+                    <button class="end">End Call</button>
+                `;
+                callNotificationsContainer.appendChild(activeDiv);
+                activeDiv.querySelector('.end').onclick = () => adminEndCall(userId);
+          }
+
+          function hideActiveCallUI(userId) {
+               const activeDiv = document.getElementById(`call-active-${userId}`);
+               if (activeDiv) activeDiv.remove();
+          }
+
+          function hideAllCallNotifications() {
+               callNotificationsContainer.innerHTML = '';
+               ringtoneAudio.pause(); ringtoneAudio.currentTime = 0;
+          }
+
+
+        // --- Mute / Notifications ---
+        // (Use toggleMute, updateMuteButtonUI, requestNotificationPermission, showNotification from previous admin.html)
+         function toggleMute() { /* Same as before */ isMuted = !isMuted; localStorage.setItem('adminMuted', isMuted); updateMuteButtonUI(); if (isMuted) { ringtoneAudio.pause(); ringtoneAudio.currentTime = 0; } }
+         function updateMuteButtonUI() { /* Same as before */ muteButton.textContent = isMuted ? 'Unmute Alerts' : 'Mute Alerts'; muteButton.classList.toggle('muted', isMuted); }
+         function requestNotificationPermission() { /* Same as before */ if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') { Notification.requestPermission().then(p => console.log(`Notify permission: ${p}`)); } }
+         function showNotification(message) { /* Same as before */ requestNotificationPermission(); if ('Notification' in window && Notification.permission === 'granted' && document.hidden) { new Notification('Admin Alert', { body: message }); } }
+
+
+        // --- Initial Setup Calls ---
+        sendButton.onclick = handleAdminSend; // Unified send button handler
+        messageInput.onkeydown = handleInputKeyDown; // Unified keydown handler
+        logoutButton.onclick = handleLogout;
+        muteButton.onclick = toggleMute;
+        updateMuteButtonUI(); // Set initial mute button text
+        requestNotificationPermission(); // Ask for notification permission early
+        startLoginBotConversation(); // Start the process
 
     </script>
 
