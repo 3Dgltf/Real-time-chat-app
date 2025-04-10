@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Panel</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔐</text></svg>">
+    <!-- CSS from your index.html -->
+    <style>
+        /* --- Base Styles --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        html, body { height: 100%; overflow: hidden; }
+        body { background: linear-gradient(to right, #6a11cb, #2575fc); display: flex; color: #fff; }
+
+         /* --- Wrapper --- */
+         .admin-view-wrapper { width: 100%; height: 100%; display: flex; background-color: rgba(0,0,0,0.1); }
+
+        /* --- Sidebar --- */
+        .sidebar { width: 280px; background: rgba(255, 255, 255, 0.08); border-right: 1px solid rgba(255, 255, 255, 0.2); display: flex; flex-direction: column; flex-shrink: 0; color: #eee; height: 100%; overflow: hidden; }
+        .sidebar .content-wrapper { padding: 15px; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+        .admin-header { border-bottom: 1px solid rgba(255, 255, 255, 0.2); padding-bottom: 15px; margin-bottom: 15px; flex-shrink: 0; }
+        .admin-header h3 { margin-bottom: 10px; font-size: 1.3em; color: #fff; }
+        #admin-profile { font-size: 0.85em; margin-bottom: 5px; word-break: break-all; } #admin-profile strong { color: #fff; }
+        #user-count { font-size: 0.85em; margin-bottom: 10px; color: #ccc;}
+        .sidebar-actions button { width: 100%; margin-bottom: 8px; font-size: 0.9em; padding: 8px 10px; border-radius: 5px; cursor: pointer; transition: background-color 0.2s ease, color 0.2s ease, opacity 0.2s ease; border: 1px solid rgba(255,255,255,0.3); } /* Added opacity transition */
+        #logoutButton { background-color: #ff4f81; color: white;} #logoutButton:hover:not(:disabled) { background-color: #e03060; } #logoutButton:disabled { background-color: #aaa; cursor: not-allowed; opacity: 0.7;} /* Added disabled style */
+        #muteButton { background-color: #ffd700; color: #333; } #muteButton:hover:not(:disabled) { background-color: #e0a800;} #muteButton.muted { background-color: #ff8c00; color: white; } #muteButton:disabled { background-color: #aaa; cursor: not-allowed; opacity: 0.7;} /* Added disabled style */
+        .user-list-header { padding-bottom: 5px; font-weight: bold; border-bottom: 1px solid rgba(255, 255, 255, 0.2); margin-bottom: 5px; font-size: 0.9em; flex-shrink: 0; }
+        .user-list-container { flex-grow: 1; overflow-y: auto; padding-right: 5px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.3) transparent; }
+        .user-list-container::-webkit-scrollbar { width: 6px; } .user-list-container::-webkit-scrollbar-track { background: transparent; } .user-list-container::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.3); border-radius: 3px; }
+        #user-list { list-style: none; padding: 0; margin: 0; }
+        #user-list li { padding: 10px 0px 10px 5px; cursor: pointer; border-bottom: 1px solid rgba(255, 255, 255, 0.1); transition: background-color 0.2s ease; display: flex; justify-content: space-between; align-items: center; font-size: 0.9em; }
+        #user-list li.disabled { cursor: default; opacity: 0.6; } /* Added disabled style */
+        #user-list li:not(.disabled):hover { background-color: rgba(255, 255, 255, 0.1); }
+        #user-list li.active { background-color: #2575fc; color: white; font-weight: 500; } #user-list li.active:hover { background-color: #1a5fce; }
+        #user-list li .user-name { overflow: hidden; text-overflow: ellipsis; flex-grow: 1; margin-right: 10px; white-space: nowrap;}
+        #user-list li .indicators { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+        #user-list li .unread-indicator { min-width: 18px; height: 18px; background-color: #ff4f81; border-radius: 50%; color: white; font-size: 0.7em; font-weight: bold; text-align: center; line-height: 18px; padding: 0 4px; opacity: 0; transform: scale(0.5); transition: opacity 0.3s ease, transform 0.3s ease; }
+        #user-list li .unread-indicator.visible { opacity: 1; transform: scale(1); }
+        #user-list li .blocked-indicator { font-size: 0.8em; color: #ffc107; font-weight: bold; background: rgba(0,0,0,0.3); padding: 1px 4px; border-radius: 3px;}
+
+        /* --- Chat Container --- */
+        .chat-container { flex: 1; height: 100%; background-color: transparent; display: flex; flex-direction: column; position: relative; overflow: hidden; padding: 0; }
+
+        /* Chat Header */
+        .chat-header { padding: 10px 15px; background-color: rgba(0, 0, 0, 0.2); color: white; border-bottom: 1px solid rgba(255, 255, 255, 0.1); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .chat-header-left { display: flex; flex-direction: column; }
+        .chat-header-left h2 { font-size: 1.1em; margin: 0 0 2px 0; color: #fff; font-weight: 500;}
+        #user-status { font-size: 0.75em; color: #ccc; min-height: 1.2em; }
+        #user-status .status-dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; display: inline-block; vertical-align: middle; background-color: #aaa; transition: background-color 0.3s ease; box-shadow: 0 0 2px rgba(0,0,0,0.4); }
+        #user-status .status-dot.online { background-color: #33ff33; } #user-status .status-dot.offline { background-color: #aaa; }
+
+        /* Chat Actions */
+        .chat-actions { display: flex; align-items: center; gap: 6px; }
+        .chat-actions button { padding: 4px 8px; font-size: 0.75em; cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 4px; background-color: rgba(255, 255, 255, 0.1); color: #fff; transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease; line-height: 1.3; } /* Added opacity transition */
+        .chat-actions button:hover:not(:disabled) { background-color: rgba(255, 255, 255, 0.2); border-color: rgba(255, 255, 255, 0.6); }
+        .chat-actions button:disabled { border-color: rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.4); cursor: not-allowed; background-color: rgba(0, 0, 0, 0.1); opacity: 0.6; } /* Added opacity */
+        #clearChatHistoryButton { border-color: #ffc107; color: #ffc107; } #clearChatHistoryButton:hover:not(:disabled) { background-color: rgba(255, 193, 7, 0.2); }
+        #blockUserButton { border-color: #dc3545; color: #dc3545; } #blockUserButton:hover:not(:disabled) { background-color: rgba(220, 53, 69, 0.2); }
+        #blockUserButton.unblock { border-color: #28a745; color: #28a745; } #blockUserButton.unblock:hover:not(:disabled) { background-color: rgba(40, 167, 69, 0.2); }
+        #deleteUserButton { border-color: #ff4f81; color: #ff4f81; } #deleteUserButton:hover:not(:disabled) { background-color: rgba(255, 79, 129, 0.2); }
+        #exportChatButton { border-color: #17a2b8; color: #17a2b8; } #exportChatButton:hover:not(:disabled) { background-color: rgba(23, 162, 184, 0.2); }
+
+        /* Messages Area */
+        .messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.3) transparent; }
+        .messages::-webkit-scrollbar { width: 6px; } .messages::-webkit-scrollbar-track { background: transparent; } .messages::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.4); border-radius: 3px; }
+
+        /* Message Styles */
+        .message { padding: 10px 14px; border-radius: 10px; max-width: 80%; word-wrap: break-word; line-height: 1.4; font-size: 0.95em; position: relative; background: rgba(255, 255, 255, 0.2); color: #fff; animation: fadeIn 0.3s ease-out; opacity: 0; animation-fill-mode: forwards; }
+        .message p { margin: 0; padding: 0; }
+        .message.sent { align-self: flex-end; background-color: #00c6ff; color: #000; border-bottom-right-radius: 5px; }
+        .message.received { align-self: flex-start; background-color: #ffd700; color: #000; border-bottom-left-radius: 5px; }
+        .message .timestamp { font-size: 0.7em; display: block; margin-top: 4px; text-align: right; }
+        .message.sent .timestamp { color: rgba(0, 0, 0, 0.6); } .message.received .timestamp { color: rgba(0, 0, 0, 0.7); }
+        .message.system, .message.error, .message.success { align-self: center; background-color: rgba(0,0,0,0.5); color: #eee; font-style: italic; text-align: center; max-width: 90%; padding: 8px 12px; font-size: 0.9em; border-radius: 8px; }
+        .message.system .timestamp, .message.error .timestamp, .message.success .timestamp { display: none; }
+        .message.error { background-color: rgba(220, 53, 69, 0.8); font-weight: bold; font-style: normal;}
+        .message.success { background-color: rgba(40, 167, 69, 0.8); font-weight: bold; font-style: normal;}
+        .message.received .timestamp::after { content: ''; display: inline-block; width: 14px; height: 14px; margin-left: 5px; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 15.1"><path fill="%23aaccaa" d="M15.6 3.4l-1.1-1.1-8.9 8.9L1.8 7.4l-1.1 1.1 4.8 4.8 10.1-10z"/></svg>'); background-repeat: no-repeat; background-size: contain; vertical-align: text-bottom; opacity: 0.7; }
+        .message.received.seen .timestamp::after { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 15.1"><path fill="%2333ff33" d="M17.6 3.4L16.5 2.3C13.1-1.1 7.1 2.1 4.7 4.5l-1.9 1.9-1.1 1.1 4.8 4.8 1.1-1.1 1.9-1.9c2.4-2.4 8.4-5.6 10.1-3.9zm-4.8 4.8l-1.1 1.1-4.8-4.8L8 3.4l1.1-1.1 4.8 4.8z"/></svg>'); opacity: 1; }
+        .message .delete-msg-btn { position: absolute; top: -5px; font-size: 0.8em; background: rgba(0, 0, 0, 0.4); color: white; border: none; border-radius: 50%; width: 16px; height: 16px; line-height: 16px; text-align: center; cursor: pointer; opacity: 0; transition: opacity 0.2s; z-index: 1; }
+        .message.sent .delete-msg-btn { right: -5px; } .message:hover .delete-msg-btn { opacity: 1; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Typing Indicator */
+        #typing-indicator { padding: 0 15px 5px; font-style: italic; color: #ccc; height: 20px; font-size: 0.85em; text-align: left; flex-shrink: 0; }
+
+        /* Input Area Container */
+        .input-area-container { padding: 10px 15px 15px 15px; flex-shrink: 0; background-color: rgba(0, 0, 0, 0.1); border-top: 1px solid rgba(255, 255, 255, 0.1); }
+        /* Input Row */
+        .input-container { display: flex; gap: 10px; margin-bottom: 10px; }
+        #messageInput { flex: 1; padding: 10px 15px; border: none; border-radius: 10px; background-color: rgba(255, 255, 255, 0.9); color: #333; font-size: 1em; }
+        #messageInput:disabled { background-color: #e0e0e0; cursor: not-allowed; opacity: 0.7; }
+        #sendButton { padding: 10px 15px; border: none; border-radius: 10px; background-color: #00ffcc; color: #000; cursor: pointer; font-weight: bold; transition: background-color 0.2s ease, opacity 0.2s ease; }
+        #sendButton:hover:not(:disabled) { background-color: #00ccaa; }
+        #sendButton:disabled { background-color: #cccccc; cursor: not-allowed; opacity: 0.7; }
+        /* Audio Call Button */
+        .audio-call-button-container { margin-bottom: 5px; }
+        #adminAudioCallButton { background-color: #ff4f81; color: white; width: 100%; padding: 11px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; transition: background-color 0.2s ease, opacity 0.2s ease; font-size: 0.95em; }
+        #adminAudioCallButton:hover:not(:disabled) { background-color: #f03a6a; }
+        #adminAudioCallButton:disabled { background-color: #aaa; cursor: not-allowed; opacity: 0.7; }
+        /* Call Status */
+        #call-status-display { text-align: center; font-weight: bold; min-height: 18px; font-size: 0.8em; color: rgba(255, 255, 255, 0.8); }
+
+        /* Call Notifications Overlay */
+        #call-notifications-container { position: absolute; top: 60px; right: 15px; z-index: 100; display: flex; flex-direction: column; gap: 10px; max-width: 280px; }
+        .call-alert { padding: 10px 12px; border-radius: 8px; color: white; font-weight: 500; box-shadow: 0 3px 10px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.85em; backdrop-filter: blur(5px); }
+        .call-alert.incoming { background-color: rgba(40, 167, 69, 0.85); } .call-alert.active { background-color: rgba(0, 123, 255, 0.85); } .call-alert.calling { background-color: rgba(255, 193, 7, 0.85); color: #000;}
+        .call-alert span strong { font-weight: bold; }
+        .call-alert .button-group { display: flex; gap: 6px; }
+        .call-alert button { margin-left: 4px; background-color: rgba(255,255,255,0.85); color: #333; padding: 4px 8px; font-size: 0.8em; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: background-color 0.2s ease; }
+        .call-alert button:hover { background-color: rgba(255,255,255, 1); }
+        .call-alert button.join { background-color: #33ff33; color: #000;} .call-alert button.join:hover { background-color: #00e600; }
+        .call-alert button.reject, .call-alert button.end, .call-alert button.cancel { background-color: #ff4f81; color: white; }
+        .call-alert button.reject:hover, .call-alert button.end:hover, .call-alert button.cancel:hover { background-color: #e03060; }
+
+        /* Utility */
+        .hidden { display: none !important; }
+        /* Hidden Audio Elements */
+        .hidden-audio { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+        /* Mobile Adjustments */
+         @media (max-width: 768px) {
+             html, body { height: auto; overflow: auto; }
+             .admin-view-wrapper { flex-direction: column; height: auto; min-height: 100vh; }
+             .sidebar { width: 100% !important; height: auto; max-height: 45vh; border-right: none; border-bottom: 1px solid rgba(255, 255, 255, 0.2); order: 1; overflow: hidden; }
+             .sidebar .content-wrapper { padding: 10px 15px; }
+             .user-list-container { overflow-y: auto; flex-grow: 1; }
+             .chat-container { order: 2; flex: 1; min-height: 55vh; height: auto; }
+             .chat-header { padding: 10px 15px; } .chat-header-left h2 { font-size: 1.0em;}
+             .chat-actions { flex-wrap: wrap; gap: 4px; justify-content: flex-end;} .chat-actions button { font-size: 0.7em; padding: 3px 6px; margin-left: 3px;}
+             .messages { padding: 15px; flex-grow: 1; }
+             .input-area-container { padding: 10px 15px; }
+             .input-container input, .input-container button { font-size: 0.9em; }
+             #adminAudioCallButton { padding: 10px; font-size: 0.9em; }
+             #call-status-display { font-size: 0.75em; }
+             #call-notifications-container { top: 50px; right: 10px; max-width: 180px;}
+             .call-alert { padding: 8px 10px; font-size: 0.8em; } .call-alert button { padding: 3px 6px; font-size: 0.75em;}
+         }
+    </style>
+</head>
+<body>
+
+    <!-- HTML Structure from your index.html -->
+    <div class="admin-view-wrapper">
+        <aside class="sidebar" id="admin-sidebar">
+            <div class="content-wrapper">
+                <div class="admin-header">
+                    <h3>Admin Panel</h3>
+                    <div id="admin-profile">Logged in as: <strong id="admin-email-display"></strong></div>
+                    <div id="user-count">Total Users: <strong id="user-count-display">0</strong></div>
+                    <div class="sidebar-actions">
+                        <button id="muteButton" disabled>Mute Alerts</button>
+                        <button id="logoutButton" disabled>Logout</button>
+                    </div>
+                </div>
+                <div class="user-list-header">Users</div>
+                <div class="user-list-container">
+                    <ul id="user-list">
+                         <li class="disabled" style="text-align: center; color: #6c757d; padding: 20px;">Login to view users</li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
+        <div class="chat-container" id="main-chat-area">
+            <div class="chat-header" id="main-chat-header">
+                <div class="chat-header-left">
+                     <h2 id="current-chat-userName">Admin Login Required</h2>
+                     <div id="user-status" class="hidden">User: <span class="status-dot offline" title="Offline"></span></div>
+                </div>
+                <div class="chat-actions hidden" id="main-chat-actions">
+                     <button id="clearChatHistoryButton" disabled title="Clear Chat History">Clear</button>
+                     <button id="blockUserButton" disabled title="Block/Unblock User">Block</button>
+                     <button id="deleteUserButton" disabled title="Delete User & History">Delete User</button>
+                     <button id="exportChatButton" disabled title="Export Chat History">Export</button>
+                </div>
+            </div>
+             <div id="typing-indicator" class="typing-indicator"></div>
+             <div class="messages" id="messages"></div>
+            <div class="input-area-container" id="main-input-area-container">
+                 <div class="input-container" id="main-input-container">
+                    <!-- Mapping JS #messageInput to HTML #message-input -->
+                    <input type="text" id="messageInput" placeholder="Type message to login..." autocomplete="off">
+                    <!-- Mapping JS #sendButton to HTML #send-button -->
+                    <button type="button" id="sendButton">Send</button>
+                 </div>
+                 <div class="audio-call-button-container">
+                     <button id="adminAudioCallButton" disabled>Audio Call</button>
+                 </div>
+                 <div id="call-status-display"></div>
+            </div>
+        </div>
+    </div>
+    <div id="call-notifications-container"></div>
+    <audio id="ringtone" src="ringtone.mp3" preload="auto"></audio>
+    <audio id="localAudio" autoplay muted class="hidden-audio"></audio>
+    <audio id="remoteAudio" autoplay class="hidden-audio"></audio>
+    <!-- End of HTML Structure -->
+
+    <!-- JavaScript from Revision 7 -->
+    <script type="module">
+        // Firebase SDK Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        import { getDatabase, ref, set, push, onValue, onChildAdded, onChildChanged, onChildRemoved, serverTimestamp, query, orderByChild, limitToLast, update, remove, off, get, child } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+             apiKey: "AIzaSyA5mBW5mXff46acu01BbPmZh8LGGXV42v8", authDomain: "chat-app-ddecb.firebaseapp.com", databaseURL: "https://chat-app-ddecb-default-rtdb.firebaseio.com", projectId: "chat-app-ddecb", storageBucket: "chat-app-ddecb.firebasestorage.app", messagingSenderId: "534760202357", appId: "1:534760202357:web:da7d90561af1c4220a183c", measurementId: "G-MCSSLKG71W"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        // --- DOM Elements (Mapped to your index.html IDs) ---
+        const adminSidebar = document.getElementById('admin-sidebar');
+        const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput'); // Using ID from your HTML
+        const sendButton = document.getElementById('sendButton');     // Using ID from your HTML
+        const adminEmailDisplay = document.getElementById('admin-email-display');
+        const userCountDisplay = document.getElementById('user-count-display');
+        const logoutButton = document.getElementById('logoutButton');
+        const userListUL = document.getElementById('user-list');
+        const mainChatHeader = document.getElementById('main-chat-header');
+        const currentChatUserNameH2 = document.getElementById('current-chat-userName');
+        const userStatusDiv = document.getElementById('user-status');
+        const userStatusSpan = userStatusDiv.querySelector('.status-dot');
+        const mainChatActions = document.getElementById('main-chat-actions');
+        const typingIndicatorDiv = document.getElementById('typing-indicator');
+        const clearChatHistoryButton = document.getElementById('clearChatHistoryButton');
+        const blockUserButton = document.getElementById('blockUserButton');
+        const deleteUserButton = document.getElementById('deleteUserButton');
+        const exportChatButton = document.getElementById('exportChatButton');
+        const adminAudioCallButton = document.getElementById('adminAudioCallButton');
+        const callStatusDisplay = document.getElementById('call-status-display');
+        const callNotificationsContainer = document.getElementById('call-notifications-container');
+        const ringtoneAudio = document.getElementById('ringtone');
+        const muteButton = document.getElementById('muteButton');
+        const localAudio = document.getElementById('localAudio');
+        const remoteAudio = document.getElementById('remoteAudio');
+
+        // --- State Variables ---
+        let appState = 'INITIAL';
+        let tempLoginEmail = '';
+        let selectedUserId = null;
+        let currentUserList = {};
+        let typingTimeout = null;
+        let isMuted = localStorage.getItem('adminMuted') === 'true';
+        let globalListeners = { users: {}, calls: null, presence: null, connected: null };
+        let currentAdminUser = null;
+        let botMessageTimeout;
+        let peerConnection = null; let localStream = null; let activeCallUserId = null;
+        const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+        let callSignalListeners = {};
+        let userToSelectOnLoad = null;
+        let originalSendButtonHandler = null;
+
+        // --- Constants ---
+        const ADMIN_EMAIL = "cnow20874@gmail.com"; const ADMIN_PASSWORD = "hi99wMJpgfHpQjZ";
+        const ADMIN_PANEL_BASE_URL = "https://cool-moonbeam-685338.netlify.app/";
+
+        // --- Firebase Refs ---
+        const rootRef = ref(db); const chatsRef = ref(db, 'chats'); const adminStatusRef = ref(db, 'adminStatus'); const connectedRef = ref(db, '.info/connected');
+        let presenceRef = null;
+
+        // --- Log Helper ---
+        function log(level, ...args) { console[level](`[Admin UI Merge]`, ...args); }
+
+        // --- Initialization and Auth ---
+        function initializeAppView() {
+             log('info', "Initializing Admin View...");
+             const urlParams = new URLSearchParams(window.location.search); userToSelectOnLoad = urlParams.get('user');
+             if (userToSelectOnLoad) { log('info',"URL param found:", userToSelectOnLoad); window.history.replaceState({}, document.title, window.location.pathname); }
+
+             setPersistence(auth, browserLocalPersistence).then(() => {
+                 onAuthStateChanged(auth, handleAuthStateChange);
+             }).catch((e) => { log('error',"Persistence error:", e); onAuthStateChanged(auth, handleAuthStateChange); });
+
+             // Attach static button listeners
+             sendButton.onclick = handleSendAttempt;
+             messageInput.onkeypress = (e) => { if (e.key === 'Enter') handleSendAttempt(); };
+             logoutButton.onclick = handleLogout;
+             muteButton.onclick = toggleMute;
+
+             updateMuteButtonUI();
+             requestNotificationPermission();
+             setUIState('INITIAL');
+        }
+
+        function handleAuthStateChange(user) {
+            log('info', `Auth State Changed: User ${user ? user.email : 'null'}. Current App State: ${appState}`);
+            clearTimeout(botMessageTimeout);
+
+            if (user && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+                 log('info', "Admin Authenticated:", user.email);
+                 currentAdminUser = user;
+                 presenceRef = ref(db, `adminStatus`);
+                 adminEmailDisplay.textContent = user.email; // Display admin email
+                 if (!appState.startsWith('ADMIN_')) {
+                     log('info', "Transitioning to ADMIN_IDLE state...");
+                     setUIState('LOGGING_IN'); displaySystemMessage("Login successful. Loading...", 'success', true);
+                     setTimeout(() => { setUIState('ADMIN_IDLE'); initializeDashboardFunctionality(); }, 500);
+                 } else { log('info', "Already in admin state."); setAdminOnlineStatus(true); if (!globalListeners.users.added) { initializeDashboardFunctionality(); } }
+            } else {
+                 log('info', "Admin Not Authenticated."); if (currentAdminUser) { setAdminOnlineStatus(false); } currentAdminUser = null; presenceRef = null; adminEmailDisplay.textContent = ''; // Clear admin email
+                 cleanupAllDashboardListeners(); setUIState('INITIAL');
+            }
+        }
+
+        // --- UI State Management ---
+        function setUIState(newState) {
+            log('info', `Setting UI State: ${newState}`);
+            const previousState = appState; appState = newState;
+
+            // Defaults
+            logoutButton.disabled = true; muteButton.disabled = true; messageInput.disabled = true; sendButton.disabled = true; sendButton.textContent = 'Send'; messageInput.type = 'text'; messageInput.placeholder = 'Loading...'; messageInput.value = ''; messageInput.onkeypress = null; sendButton.onclick = null;
+            if(originalSendButtonHandler) { sendButton.removeEventListener('click', originalSendButtonHandler); originalSendButtonHandler = null; }
+            adminAudioCallButton.disabled = true; clearChatHistoryButton.disabled = true; blockUserButton.disabled = true; blockUserButton.textContent = 'Block'; blockUserButton.classList.remove('unblock'); deleteUserButton.disabled = true; exportChatButton.disabled = true; mainChatActions.classList.add('hidden');
+            userListUL.querySelectorAll('li').forEach(li => li.classList.add('disabled'));
+
+            switch(newState) {
+                case 'INITIAL':
+                    userListUL.innerHTML = '<li class="disabled" style="text-align: center; color: #6c757d; padding: 20px;">Login to view users</li>'; currentChatUserNameH2.textContent = "Admin Login Required"; userStatusDiv.classList.add('hidden'); messagesDiv.innerHTML = ''; displaySystemMessage("Type a message or click Send to login.", 'system');
+                    messageInput.disabled = false; sendButton.disabled = false; messageInput.placeholder = 'Type message to login...'; sendButton.onclick = handleSendAttempt; messageInput.onkeypress = (e) => { if (e.key === 'Enter') handleSendAttempt(); };
+                    break;
+                case 'LOGIN_EMAIL':
+                    messagesDiv.innerHTML = ''; displaySystemMessage("Enter Admin Email:", 'system'); messageInput.disabled = false; sendButton.disabled = false; messageInput.type = 'email'; messageInput.placeholder = 'admin@example.com'; sendButton.textContent = 'Next'; sendButton.onclick = handleEmailInput; messageInput.onkeypress = (e) => { if (e.key === 'Enter') handleEmailInput(); }; messageInput.focus();
+                    break;
+                case 'LOGIN_PASSWORD':
+                    messagesDiv.innerHTML = ''; displaySystemMessage(`Email: ${tempLoginEmail}\nEnter Password:`, 'system'); messageInput.disabled = false; sendButton.disabled = false; messageInput.type = 'password'; messageInput.placeholder = 'Password'; sendButton.textContent = 'Login'; sendButton.onclick = handlePasswordInput; messageInput.onkeypress = (e) => { if (e.key === 'Enter') handlePasswordInput(); }; messageInput.focus();
+                    break;
+                case 'LOGGING_IN':
+                    displaySystemMessage("Verifying...", 'system'); messageInput.disabled = true; sendButton.disabled = true; sendButton.textContent = 'Verifying...';
+                    break;
+                case 'ADMIN_IDLE':
+                    logoutButton.disabled = false; muteButton.disabled = false;
+                    userListUL.querySelectorAll('li').forEach(li => li.classList.remove('disabled')); mainChatActions.classList.remove('hidden');
+                    currentChatUserNameH2.textContent = "Select a User"; userStatusDiv.classList.add('hidden');
+                    if (previousState !== 'ADMIN_CHAT_SELECTED') { messagesDiv.innerHTML = ''; displaySystemMessage("Select a user from the list.", 'system'); }
+                    messageInput.disabled = true; sendButton.disabled = true; messageInput.placeholder = 'Select a user...'; messageInput.type = 'text';
+                    adminAudioCallButton.disabled = true; clearChatHistoryButton.disabled = true; blockUserButton.disabled = true; deleteUserButton.disabled = true; exportChatButton.disabled = true;
+                    break;
+                case 'ADMIN_CHAT_SELECTED':
+                    logoutButton.disabled = false; muteButton.disabled = false;
+                    userListUL.querySelectorAll('li').forEach(li => li.classList.remove('disabled')); mainChatActions.classList.remove('hidden');
+                    messageInput.disabled = false; sendButton.disabled = false; messageInput.placeholder = 'Type reply...'; messageInput.type = 'text';
+                    originalSendButtonHandler = sendMessageAdminInternal; sendButton.addEventListener('click', originalSendButtonHandler);
+                    messageInput.onkeypress = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessageAdminInternal(); } else if (selectedUserId) { setAdminTyping(true); } };
+                    messageInput.oninput = () => { if (appState === 'ADMIN_CHAT_SELECTED' && selectedUserId) { setAdminTyping(true); } };
+                    adminAudioCallButton.disabled = !!activeCallUserId;
+                    clearChatHistoryButton.disabled = false; exportChatButton.disabled = false; deleteUserButton.disabled = false;
+                    updateBlockButtonUI();
+                    userStatusDiv.classList.remove('hidden');
+                    break;
+            }
+        }
+
+        // --- Inline Login Flow ---
+        function handleSendAttempt() { if (appState === 'INITIAL') { log('info', "Send -> Login."); messageInput.value = ''; initiateLoginFlow(); } }
+        function initiateLoginFlow() { if (appState !== 'INITIAL') return; setUIState('LOGIN_EMAIL'); }
+        function handleEmailInput() { if (appState !== 'LOGIN_EMAIL') return; tempLoginEmail = messageInput.value.trim(); if (!tempLoginEmail || !/\S+@\S+\.\S+/.test(tempLoginEmail)) { displaySystemMessage("Invalid email.", 'error'); messageInput.focus(); return; } log('debug', `Email: ${tempLoginEmail}`); setUIState('LOGIN_PASSWORD'); }
+        function handlePasswordInput() { if (appState !== 'LOGIN_PASSWORD') return; const password = messageInput.value; if (!password) { displaySystemMessage("Password needed.", 'error'); messageInput.focus(); return; } log('info', `Attempting login for ${tempLoginEmail}`); setUIState('LOGGING_IN'); signInWithEmailAndPassword(auth, tempLoginEmail, password).then(() => {}).catch((error) => { log('error', "Login Failed:", error.code); let msg = `Login Failed: ${error.code}`; if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') msg = "Error: Incorrect email/password."; else if (error.code === 'auth/network-request-failed') msg = "Error: Network problem."; tempLoginEmail = ''; setUIState('INITIAL'); displaySystemMessage(msg, 'error', false); }); }
+
+        // --- Dashboard Functionality Setup ---
+        function initializeDashboardFunctionality() {
+            if (!appState.startsWith('ADMIN_')) { log('warn','Dashboard init skipped: Not logged in.'); return; }
+            log('info', "Initializing Dashboard Functionality...");
+            try {
+                setupAdminPresence();
+                loadUserListAndListeners();
+                setupGlobalCallListener();
+                // Attach action button listeners
+                clearChatHistoryButton.onclick = handleClearChatHistory;
+                blockUserButton.onclick = toggleBlockUser;
+                deleteUserButton.onclick = deleteUser;
+                exportChatButton.onclick = exportChat;
+                adminAudioCallButton.onclick = adminStartCall;
+
+                log('info', "Dashboard Functionality Initialized.");
+            } catch (dashError) { log('error', "CRITICAL ERROR during dashboard FUNCTIONALITY setup:", dashError); displaySystemMessage(`CRITICAL: Setup failed: ${dashError.message}.`, 'error'); }
+         }
+
+        // --- System Message Display ---
+        function displaySystemMessage(text, type = 'system', clearPrevious = false) {
+             if (!messagesDiv) return; if (clearPrevious) messagesDiv.innerHTML = ''; const msgId = `sys-msg-${Date.now()}`; const messageElement = document.createElement('div'); messageElement.classList.add('message', type); messageElement.id = msgId; const textElement = document.createElement('p'); textElement.textContent = text; messageElement.appendChild(textElement); messagesDiv.appendChild(messageElement); scrollToBottom(messagesDiv); return msgId;
+        }
+
+        // --- Admin Presence ---
+        function setupAdminPresence() {
+            if (!appState.startsWith('ADMIN_') || !auth.currentUser || !presenceRef) { log('warn','Skipping presence setup.'); return; }
+            log('debug', 'Setting up admin presence...');
+            if (globalListeners.connected) { connectedRef.off('value', globalListeners.connected); globalListeners.connected = null; }
+            globalListeners.connected = onValue(connectedRef, (snap) => {
+                 if (!auth.currentUser || !presenceRef) return; const isConnected = snap.val(); log('debug', `Firebase connection status: ${isConnected}`);
+                 if (isConnected === true) { const presencePayload = { online: true, status: 'available', uid: auth.currentUser.uid, timestamp: serverTimestamp() }; const onDisconnectPayload = { online: false, status: 'offline', timestamp: serverTimestamp() }; presenceRef.set(presencePayload).then(() => presenceRef.onDisconnect().set(onDisconnectPayload)).catch(err => log('error', "Presence/onDisconnect error:", err)); }
+            }, (error) => { log('error', "Error listening to .info/connected:", error); });
+        }
+
+        // --- User List Handling (child_* listeners) ---
+        function loadUserListAndListeners() {
+             if (globalListeners.users.added) { log('warn', "User listeners already attached."); return; }
+             log('info', "Attaching User List Listeners (child_*)...");
+             currentUserList = {}; userListUL.innerHTML = '<li class="disabled" style="text-align: center; color: #6c757d; padding: 20px;">Loading users...</li>';
+             let initialUsersProcessed = false;
+
+             globalListeners.users.added = onChildAdded(chatsRef, (snapshot) => {
+                 if (!appState.startsWith('ADMIN_')) return; const userId = snapshot.key; const userData = snapshot.val(); log('debug', `Child Added: ${userId}`);
+                 if (userData?.metadata && userId !== 'adminStatus') {
+                     if (!initialUsersProcessed && userListUL.querySelector('li.disabled')) { userListUL.innerHTML = ''; } initialUsersProcessed = true;
+                     const name = userData.metadata.userName || `User ${userId.substring(0, 4)}`; const lastActive = userData.metadata.lastActive || 0; const isBlocked = userData.metadata.isBlocked || false;
+                     currentUserList[userId] = { ...(currentUserList[userId] || {}), userName: name, isBlocked: isBlocked, lastActive: lastActive, unreadCount: 0 };
+                     updateUserListItem(userId);
+                     if (!currentUserList[userId].listenersAttached) { attachUserSpecificListeners(userId); }
+                     if (userId === userToSelectOnLoad) { log('info', `Auto-selecting user ${userId} from child_added.`); selectUserChat(userId); userToSelectOnLoad = null; }
+                     updateUserCount();
+                 } else { log('debug', `Skipping added child: ${userId}`); }
+             }, (error) => { log('error', "!!! User child_added listener error:", error); });
+
+             globalListeners.users.changed = onChildChanged(chatsRef, (snapshot) => {
+                 if (!appState.startsWith('ADMIN_')) return; const userId = snapshot.key; const userData = snapshot.val(); log('debug', `Child Changed: ${userId}`);
+                 if (currentUserList[userId] && userData?.metadata && userId !== 'adminStatus') {
+                     const name = userData.metadata.userName || currentUserList[userId].userName; const lastActive = userData.metadata.lastActive || currentUserList[userId].lastActive; const isBlocked = userData.metadata.isBlocked || false;
+                     let needsUIUpdate = false;
+                     if (currentUserList[userId].userName !== name) { currentUserList[userId].userName = name; needsUIUpdate = true; }
+                     if (currentUserList[userId].isBlocked !== isBlocked) { currentUserList[userId].isBlocked = isBlocked; needsUIUpdate = true; }
+                     if (currentUserList[userId].lastActive !== lastActive) { currentUserList[userId].lastActive = lastActive; }
+                     if (needsUIUpdate) { updateUserListItem(userId); }
+                     if (userId === selectedUserId) { currentChatUserNameH2.textContent = name; updateBlockButtonUI(); }
+                 } else if (currentUserList[userId] && (!userData || !userData.metadata)) { log('warn', `Metadata removed for ${userId}. Removing user.`); handleUserRemoval(userId); }
+             }, (error) => { log('error', "!!! User child_changed listener error:", error); });
+
+             globalListeners.users.removed = onChildRemoved(chatsRef, (snapshot) => {
+                 if (!appState.startsWith('ADMIN_')) return; const userId = snapshot.key; log('info', `Child Removed: ${userId}`); handleUserRemoval(userId);
+             }, (error) => { log('error', "!!! User child_removed listener error:", error); });
+
+             log('info', "User list child_* listeners attached.");
+        }
+        function handleUserRemoval(userId) {
+            if (!currentUserList[userId]) return; log('info', `Handling removal of user ${userId}`); detachUserSpecificListeners(userId); delete currentUserList[userId]; const li = document.getElementById(`user-${userId}`); if (li) li.remove(); if (selectedUserId === userId) { resetChatView(); } updateUserCount();
+            if (Object.keys(currentUserList).length === 0) { userListUL.innerHTML = '<li class="disabled" style="text-align: center; color: #6c757d; padding: 20px;">No active users</li>'; }
+        }
+        function updateUserListItem(userId) {
+            if (!currentUserList[userId] || !userListUL) return; const userData = currentUserList[userId]; let li = document.getElementById(`user-${userId}`);
+            if (!li) { li = document.createElement('li'); li.id = `user-${userId}`; li.dataset.userId = userId; userListUL.appendChild(li); li.onclick = () => selectUserChat(userId); }
+            const name = userData.userName || 'Unknown'; const isBlocked = userData.isBlocked || false; const hasUnread = userData.unreadCount > 0;
+            li.innerHTML = `<span class="user-name" title="${name} (${userId})">${name}</span><span class="indicators"><span class="unread-indicator ${hasUnread ? 'visible' : ''}" title="Unread messages">${hasUnread ? (userData.unreadCount > 9 ? '9+' : userData.unreadCount) : ''}</span>${isBlocked ? '<span class="blocked-indicator" title="User blocked">Blocked</span>' : ''}</span>`;
+            li.classList.toggle('active', userId === selectedUserId); li.classList.remove('disabled');
+        }
+        function updateUserCount() { const count = Object.keys(currentUserList).length; userCountDisplay.textContent = count; }
+        function setupGlobalCallListener() {
+            if (globalListeners.calls) { log('warn', "Global call listener already attached."); return; } log('info', "Attaching global call listener...");
+            globalListeners.calls = onChildChanged(chatsRef, (snapshot) => {
+                 if (!appState.startsWith('ADMIN_')) return; const userId = snapshot.key; const changedData = snapshot.val(); if (userId === 'adminStatus' || !changedData) return;
+                 if (changedData?.call?.state === 'ringing' && changedData.call.initiator === 'user') { const userName = changedData.metadata?.userName || currentUserList[userId]?.userName || 'Unknown User'; log('debug', `Call listener detected ringing for ${userId}`); handleIncomingCall(userId, userName, changedData.call); }
+            }, (error) => { log('error', "!!! Global call listener error:", error); }); log('info', "Global call 'onChildChanged' listener attached.");
+        }
+
+        // --- Attach User Listeners ---
+        function attachUserSpecificListeners(userId) {
+             if (!currentUserList[userId] || currentUserList[userId].listenersAttached) return; log('debug', `Attaching listeners for ${userId}`); const uc = currentUserList[userId]; const msgRef = ref(db, `chats/${userId}/messages`); const statusRef = ref(db, `chats/${userId}/status`); const callRef = ref(db, `chats/${userId}/call`); const listeners = {};
+             listeners.messages = onChildAdded(msgRef, (snapshot) => { if (!appState.startsWith('ADMIN_') || !currentUserList[userId]) return; const msg = snapshot.val(); const msgId = snapshot.key; if (!msg) return; const isNewUnseen = msg.sender === 'user' && !msg.seenByAdmin; if (userId === selectedUserId) { if (!messagesDiv.querySelector(`.message[data-msg-id="${msgId}"]`)){ displayMessageInternal(msg.sender === 'admin' ? 'sent' : 'received', msg.text, msg.timestamp, msgId, msg.seenByAdmin); } if (isNewUnseen) { markMessageAsSeen(userId, msgId); } if (uc.unreadCount > 0) { uc.unreadCount = 0; updateUnreadIndicator(userId, 0); } } else if (isNewUnseen) { uc.unreadCount = (uc.unreadCount || 0) + 1; updateUnreadIndicator(userId, uc.unreadCount); if (!isMuted) { showNotification(`Msg from ${uc.userName}`); } } }, e => log('error', `Msg listener error ${userId}:`, e));
+             listeners.status = onValue(statusRef, (s) => { if (!appState.startsWith('ADMIN_') || !currentUserList[userId]) return; uc.statusData = s.val(); if (userId === selectedUserId) { updateUserStatusUI(uc.statusData); } }, e => log('error', `Status listener error ${userId}:`, e));
+             listeners.call = onValue(callRef, (s) => { if (!appState.startsWith('ADMIN_') || !currentUserList[userId]) return; const cs = s.val(); uc.callData = cs; updateAdminCallUI(cs, userId, uc.userName); if (activeCallUserId === userId && (!cs || cs.state === 'ended' || cs.state === 'idle')) { hangUpCall(false); } }, e => log('error', `Call listener error ${userId}:`, e));
+             uc.listenersAttached = listeners; log('debug', `Listeners attached for ${userId}`);
+        }
+
+        // --- Cleanup Listeners ---
+        function cleanupAllDashboardListeners() {
+             log('info', 'Cleaning ALL dashboard listeners...');
+             try {
+                 if (globalListeners.users.added) off(chatsRef, 'child_added', globalListeners.users.added);
+                 if (globalListeners.users.changed) off(chatsRef, 'child_changed', globalListeners.users.changed);
+                 if (globalListeners.users.removed) off(chatsRef, 'child_removed', globalListeners.users.removed);
+                 globalListeners.users = {};
+                 if (globalListeners.calls) { off(chatsRef, 'child_changed', globalListeners.calls); globalListeners.calls = null; }
+                 if (globalListeners.connected) { connectedRef.off('value', globalListeners.connected); globalListeners.connected = null; }
+                 if(presenceRef) { presenceRef.onDisconnect().cancel().catch(e=>log('warn','Err cancel onDisconnect',e)); presenceRef.set(null).catch(e=>log('warn','Err clear presence',e)); }
+                 Object.keys(currentUserList).forEach(userId => detachUserSpecificListeners(userId));
+                 currentUserList = {}; clearTimeout(typingTimeout); hideAllCallNotifications(); hangUpCall(false);
+                 if (sendButton && originalSendButtonHandler) { sendButton.removeEventListener('click', originalSendButtonHandler); originalSendButtonHandler = null; }
+                 sendButton.onclick=null; messageInput.onkeypress=null; messageInput.oninput=null;
+                 clearChatHistoryButton.onclick=null; blockUserButton.onclick=null; deleteUserButton.onclick=null; exportChatButton.onclick=null; adminAudioCallButton.onclick=null;
+                 logoutButton.onclick = null; muteButton.onclick = null; // Clear static handlers too
+             } catch (e) { log('error', "Error during cleanupAllDashboardListeners:", e); }
+        }
+        function detachUserSpecificListeners(userId) {
+             const uc = currentUserList[userId]; if (!uc || !uc.listenersAttached) return; log('debug', `Detaching listeners for ${userId}`);
+             try {
+                 if (uc.listenersAttached.messages) off(ref(db, `chats/${userId}/messages`), 'child_added', uc.listenersAttached.messages);
+                 if (uc.listenersAttached.status) off(ref(db, `chats/${userId}/status`), 'value', uc.listenersAttached.status);
+                 if (uc.listenersAttached.call) off(ref(db, `chats/${userId}/call`), 'value', uc.listenersAttached.call);
+             } catch(e) { log('warn', `Error detaching listeners for ${userId}:`, e); }
+             uc.listenersAttached = null;
+        }
+
+        // --- Reset/Select Chat View ---
+        function resetChatView() {
+             selectedUserId = null; activeCallUserId = null;
+             messagesDiv.innerHTML = ''; typingIndicatorDiv.textContent = ''; currentChatUserNameH2.textContent = "Select a User"; userStatusDiv.classList.add('hidden'); mainChatActions.classList.remove('hidden'); messageInput.placeholder = "Select user...";
+             displaySystemMessage("Select a user from the list.", 'system', true);
+             callStatusDisplay.textContent = '';
+             setUIState('ADMIN_IDLE');
+        }
+        function selectUserChat(userId) {
+             if (!currentUserList[userId] || !appState.startsWith('ADMIN_')) return; if (activeCallUserId && activeCallUserId !== userId) { alert(`End call with ${currentUserList[activeCallUserId]?.userName || 'user'} first.`); return; }
+             if (selectedUserId === userId && appState === 'ADMIN_CHAT_SELECTED') { log('debug', `User ${userId} already selected.`); return; }
+             log('info', `Selecting user: ${userId}`);
+             if (selectedUserId) { const prevLi = document.getElementById(`user-${selectedUserId}`); if (prevLi) prevLi.classList.remove('active'); }
+             selectedUserId = userId; const currentLi = document.getElementById(`user-${selectedUserId}`); if (currentLi) currentLi.classList.add('active');
+             if (currentUserList[userId]) { currentUserList[userId].unreadCount = 0; updateUnreadIndicator(userId, 0); }
+             loadChatForSelectedUser(userId);
+             setUIState('ADMIN_CHAT_SELECTED');
+             messageInput.focus(); messageInput.placeholder = `Reply to ${currentUserList[userId]?.userName || 'User'}...`;
+             currentChatUserNameH2.textContent = currentUserList[userId]?.userName || `User ${userId.substring(0,4)}`;
+             updateUserStatusUI(currentUserList[userId]?.statusData);
+             updateAdminCallUI(currentUserList[userId]?.callData, userId, currentUserList[userId]?.userName);
+             callStatusDisplay.textContent = '';
+        }
+        // Load Chat History
+        async function loadChatForSelectedUser(userId) {
+             if (!currentUserList[userId] || appState !== 'ADMIN_CHAT_SELECTED') return; messagesDiv.innerHTML = ''; typingIndicatorDiv.textContent = ''; const userData = currentUserList[userId];
+             const messagesQuery = query(ref(db, `chats/${userId}/messages`), orderByChild('timestamp'), limitToLast(50));
+             try { const snapshot = await get(messagesQuery); messagesDiv.innerHTML = ''; if (!snapshot.exists()) { displaySystemMessage("No messages yet.", "system"); } else { let messagesToMarkSeen = []; snapshot.forEach((cs) => { const msg = cs.val(); const msgId = cs.key; const seen = msg.seenByAdmin || false; displayMessageInternal(msg.sender === 'admin' ? 'sent' : 'received', msg.text, msg.timestamp, msgId, seen); if (msg.sender === 'user' && !seen) { messagesToMarkSeen.push(msgId); } }); scrollToBottom(); if (messagesToMarkSeen.length > 0) { markMultipleMessagesAsSeen(userId, messagesToMarkSeen); } } } catch (error) { log('error',"Msg load error:", error); displaySystemMessage("Error loading messages.", 'error'); }
+        }
+        // Update Status UI
+        function updateUserStatusUI(statusData) {
+             if (!userStatusDiv) return; if (appState !== 'ADMIN_CHAT_SELECTED' || !selectedUserId) { userStatusDiv.classList.add('hidden'); typingIndicatorDiv.textContent = ''; return; };
+             userStatusDiv.classList.remove('hidden'); const userName = currentUserList[selectedUserId]?.userName || 'User'; const isOnline = statusData?.userOnline || false; const isTyping = statusData?.userTyping || false;
+             userStatusSpan.classList.toggle('online', isOnline); userStatusSpan.classList.toggle('offline', !isOnline); userStatusSpan.title = isOnline ? 'Online' : 'Offline';
+             userStatusDiv.firstChild.nodeValue = `${isOnline ? 'Online' : 'Offline'}`;
+             typingIndicatorDiv.textContent = isTyping ? `${userName} is typing...` : '';
+        }
+        // Send Admin Message
+        function sendMessageAdminInternal() {
+             if (appState !== 'ADMIN_CHAT_SELECTED' || !selectedUserId || !messageInput) return; if (currentUserList[selectedUserId]?.isBlocked === true) { displaySystemMessage("Cannot send: User is blocked.", "error"); return; } const text = messageInput.value.trim(); if (!text) return; const msgData = { sender: 'admin', text: text, timestamp: serverTimestamp(), seenByAdmin: true }; messageInput.disabled = true; sendButton.disabled = true; sendButton.textContent = 'Sending...'; const msgRef = push(ref(db, `chats/${selectedUserId}/messages`));
+             set(msgRef, msgData).then(() => { log('debug','Msg sent'); messageInput.value = ''; setAdminTyping(false); scrollToBottom(); }).catch((err) => { log('error','Send error:', err); displaySystemMessage("Send failed.", "error"); }).finally(() => { if (appState === 'ADMIN_CHAT_SELECTED' && selectedUserId) { messageInput.disabled = false; sendButton.disabled = false; sendButton.textContent = 'Send'; messageInput.focus(); } });
+        }
+        // Display Message Internal
+        function displayMessageInternal(senderType, text, timestamp, msgId, seenByAdmin) {
+             if (!messagesDiv) return; const existingMsg = messagesDiv.querySelector(`div.message[data-msg-id="${msgId}"]`); if (existingMsg) { /* Maybe update seen status? */ existingMsg.classList.toggle('seen', seenByAdmin); return; }
+             const wrapper = document.createElement('div'); wrapper.classList.add('message', senderType); wrapper.dataset.msgId = msgId; const p = document.createElement('p'); p.textContent = text; wrapper.appendChild(p); if (senderType !== 'bot' && senderType !== 'system' && senderType !== 'error' && senderType !== 'success') { const timeSpan = document.createElement('span'); timeSpan.classList.add('timestamp'); timeSpan.textContent = formatTimestamp(timestamp); if (senderType === 'received') { wrapper.classList.toggle('seen', seenByAdmin); } wrapper.appendChild(timeSpan); } if (senderType === 'sent') { const delBtn = document.createElement('button'); delBtn.classList.add('delete-msg-btn'); delBtn.innerHTML = '&times;'; delBtn.title = 'Delete message'; delBtn.onclick = (e) => { e.stopPropagation(); handleDeleteMessage(selectedUserId, msgId); }; wrapper.appendChild(delBtn); } messagesDiv.appendChild(wrapper); scrollToBottom(); void wrapper.offsetWidth; wrapper.style.animationPlayState = 'running';
+        }
+        // Handle Admin Typing
+        function setAdminTyping(isTyping) {
+             if (appState !== 'ADMIN_CHAT_SELECTED' || !selectedUserId) return; const typingRef = ref(db, `chats/${selectedUserId}/status/adminTyping`);
+             if (isTyping) { set(typingRef, true); clearTimeout(typingTimeout); typingTimeout = setTimeout(() => { set(typingRef, false); }, 2500); }
+             else { clearTimeout(typingTimeout); set(typingRef, false); }
+        }
+        // Mark Message Seen
+        function markMessageAsSeen(userId, msgId) {
+             if (userId !== selectedUserId || !msgId) return; const msgRef = ref(db, `chats/${userId}/messages/${msgId}`); update(msgRef, { seenByAdmin: true }).then(() => { const el = messagesDiv.querySelector(`.message[data-msg-id="${msgId}"]`); if (el) el.classList.add('seen'); }).catch(e => log('error',"Mark seen error:", e));
+        }
+        // Mark Multiple Messages Seen
+        function markMultipleMessagesAsSeen(userId, msgIds) {
+            if (userId !== selectedUserId || !msgIds || msgIds.length === 0) return; const updates = {}; msgIds.forEach(id => { updates[`chats/${userId}/messages/${id}/seenByAdmin`] = true; }); update(rootRef, updates).then(() => { msgIds.forEach(id => { const el = messagesDiv.querySelector(`.message[data-msg-id="${id}"]`); if (el) el.classList.add('seen'); }); }).catch(e => log('error',"Mark multi-seen error:", e));
+        }
+        // Update Unread Indicator
+        function updateUnreadIndicator(userId, count) {
+             const li = document.getElementById(`user-${userId}`); if (!li) return; const indicator = li.querySelector('.unread-indicator'); if (!indicator) return; const numCount = Number(count) || 0; indicator.textContent = numCount > 0 ? (numCount > 9 ? '9+' : numCount) : ''; indicator.classList.toggle('visible', numCount > 0);
+        }
+
+        // --- Chat Actions ---
+        function toggleBlockUser() {
+             if (!selectedUserId || !appState.startsWith('ADMIN_')) return; const userMetaRef = ref(db, `chats/${selectedUserId}/metadata`); const isCurrentlyBlocked = currentUserList[selectedUserId]?.isBlocked || false; const newBlockedState = !isCurrentlyBlocked; const actionText = newBlockedState ? 'Block' : 'Unblock'; if (!confirm(`${actionText} ${currentUserList[selectedUserId]?.userName || 'this user'}?`)) return; blockUserButton.disabled = true; displaySystemMessage(`${actionText}ing user...`, "system");
+             update(userMetaRef, { isBlocked: newBlockedState }).then(() => { currentUserList[selectedUserId].isBlocked = newBlockedState; updateBlockButtonUI(); displaySystemMessage(`User ${actionText.toLowerCase()}ed.`, "success"); updateUserListItem(selectedUserId); }).catch(error => { log('error', `Error ${actionText}ing user:`, error); displaySystemMessage(`Failed to ${actionText.toLowerCase()} user.`, "error"); }).finally(() => { if (selectedUserId) blockUserButton.disabled = false; });
+        }
+        function updateBlockButtonUI() {
+            if (!blockUserButton || !appState.startsWith('ADMIN_')) return; const userIsSelected = !!selectedUserId; blockUserButton.disabled = !userIsSelected;
+            if (userIsSelected && currentUserList[selectedUserId]) { const isBlocked = currentUserList[selectedUserId].isBlocked || false; blockUserButton.textContent = isBlocked ? 'Unblock' : 'Block'; blockUserButton.classList.toggle('unblock', isBlocked); }
+            else { blockUserButton.textContent = 'Block'; blockUserButton.classList.remove('unblock'); }
+        }
+        function handleClearChatHistory() {
+            if (!selectedUserId || !appState.startsWith('ADMIN_')) return; if (!confirm(`Clear chat history for ${currentUserList[selectedUserId]?.userName || 'this user'}?`)) return; displaySystemMessage("Clearing chat...", "system"); clearChatHistoryButton.disabled = true;
+            remove(ref(db, `chats/${selectedUserId}/messages`)).then(() => { if (messagesDiv) messagesDiv.innerHTML = ''; displaySystemMessage("Chat history cleared.", "success"); }).catch(err => { log('error', "Clear chat failed:", err); displaySystemMessage("Failed to clear chat.", "error"); }).finally(() => { if (selectedUserId) clearChatHistoryButton.disabled = false; });
+        }
+        function deleteUser() {
+             if (!selectedUserId || !appState.startsWith('ADMIN_')) return; const uid = selectedUserId; const name = currentUserList[uid]?.userName || 'user'; if (confirm(`DELETE USER: ${name}?`)) { deleteUserButton.disabled = true; blockUserButton.disabled = true; exportChatButton.disabled = true; adminAudioCallButton.disabled = true; clearChatHistoryButton.disabled = true; remove(ref(db, `chats/${uid}`)).then(() => { log('info',`User ${uid} deleted.`); alert(`User ${name} deleted.`); handleUserRemoval(uid); }).catch(e => { log('error',`Delete user ${uid} error:`, e); alert(`Failed to delete ${name}.`); if(selectedUserId === uid) { deleteUserButton.disabled = false; blockUserButton.disabled = false; exportChatButton.disabled = false; adminAudioCallButton.disabled = false; clearChatHistoryButton.disabled = false; } }); }
+        }
+        async function exportChat() {
+             if (!selectedUserId || !appState.startsWith('ADMIN_')) return; const userName = currentUserList[selectedUserId]?.userName || 'User'; const messagesPath = ref(db, `chats/${selectedUserId}/messages`); const messagesQuery = query(messagesPath, orderByChild('timestamp')); exportChatButton.disabled = true; try { const snapshot = await get(messagesQuery); if (!snapshot.exists()) { alert('No messages.'); return; } let chatText = `Chat History with: ${userName} (ID: ${selectedUserId})\nExported: ${new Date().toLocaleString()}\n\n---\n\n`; snapshot.forEach(cs => { const msg = cs.val(); const sender = msg.sender === 'admin' ? 'Admin' : (msg.userName || userName); const ts = msg.timestamp ? new Date(msg.timestamp).toLocaleString() : '?'; chatText += `[${ts}] ${sender}:\n${msg.text}\n\n`; }); chatText += '---\nEnd\n'; const blob = new Blob([chatText], { type: 'text/plain;charset=utf-8' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); const safeName = userName.replace(/[^a-z0-9]/gi, '_').toLowerCase(); link.download = `chat_${safeName}_${selectedUserId.substring(0,5)}.txt`; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(link.href); } catch (error) { log('error', "Export error:", error); alert('Export failed.'); } finally { if(selectedUserId) exportChatButton.disabled = false; }
+        }
+        function handleDeleteMessage(userId, messageId) {
+             if (!appState.startsWith('ADMIN_') || !userId || !messageId || userId !== selectedUserId) return; if (!confirm('Delete message?')) return;
+             remove(ref(db, `chats/${userId}/messages/${messageId}`)).then(() => { log('debug',`Message ${messageId} deleted.`); const msgEl = messagesDiv.querySelector(`.message[data-msg-id="${messageId}"]`); if (msgEl) msgEl.remove(); }).catch(err => { log('error', "Delete msg failed:", err); displaySystemMessage("Failed to delete message.", "error"); });
+        }
+
+
+        // --- WebRTC Call Handling ---
+        async function adminStartCall() {
+            if (!selectedUserId || activeCallUserId || appState !== 'ADMIN_CHAT_SELECTED') return; const userIdToCall = selectedUserId; const userName = currentUserList[userIdToCall]?.userName || 'User'; log('info', `Admin initiating call with ${userName} (${userIdToCall})...`); adminAudioCallButton.disabled = true; callStatusDisplay.textContent = `Calling ${userName}...`;
+            try { await createAdminPeerConnection(userIdToCall); if (!peerConnection) throw new Error("PC failed."); const offer = await peerConnection.createOffer(); await peerConnection.setLocalDescription(offer); const callData = { state: 'admin-ringing', initiator: 'admin', timestamp: serverTimestamp(), offer: { type: offer.type, sdp: offer.sdp }, answer: null, iceCandidates: null, endedBy: null }; const targetCallRef = ref(db, `chats/${userIdToCall}/call`); await remove(targetCallRef); await set(targetCallRef, callData); listenForUserAnswer(userIdToCall); listenForUserIceCandidates(userIdToCall); adminAudioCallButton.textContent = 'Cancel Call'; adminAudioCallButton.disabled = false; adminAudioCallButton.onclick = () => hangUpCall(true); } catch (error) { log('error', "Admin call start error:", error); displaySystemMessage(`Error starting call.`, 'error'); hangUpCall(true); callStatusDisplay.textContent = 'Call failed'; adminAudioCallButton.textContent = 'Audio Call'; adminAudioCallButton.onclick = adminStartCall; if(selectedUserId === userIdToCall) adminAudioCallButton.disabled = false; }
+        }
+        function listenForUserAnswer(userId) {
+             if (!userId || !peerConnection) return; const answerRef = ref(db, `chats/${userId}/call/answer`); cleanupSpecificListener(userId, 'answer'); callSignalListeners[userId] = callSignalListeners[userId] || {};
+             callSignalListeners[userId].answer = onValue(answerRef, async (s) => { const a = s.val(); if (a && peerConnection && peerConnection.signalingState === 'have-local-offer') { log('info', `Received answer from ${userId}`); try { await peerConnection.setRemoteDescription(new RTCSessionDescription(a)); log('debug',"Remote desc (answer) set."); callStatusDisplay.textContent = 'Call Active'; adminAudioCallButton.textContent = 'End Call'; adminAudioCallButton.disabled = false; adminAudioCallButton.onclick = () => hangUpCall(true); } catch (e) { log('error',`Set answer error ${userId}:`, e); hangUpCall(true); } } }, (e) => { log('error',`Answer listener error ${userId}:`, e); cleanupSpecificListener(userId, 'answer'); }); log('debug',`Listening for answer from ${userId}`);
+        }
+        async function createAdminPeerConnection(callUserId) {
+             if (peerConnection) { hangUpCall(false); } activeCallUserId = callUserId; peerConnection = new RTCPeerConnection(rtcConfig);
+             peerConnection.onicecandidate = (e) => { if (e.candidate && activeCallUserId) { const iceRef = ref(db, `chats/${activeCallUserId}/call/iceCandidates/admin`); push(iceRef, { ...e.candidate.toJSON(), sender: 'admin' }); } };
+             peerConnection.ontrack = (e) => { if (e.streams && e.streams[0]) { remoteAudio.srcObject = e.streams[0]; remoteAudio.play().catch(err => log('error',"Remote audio play failed:", err)); } };
+             peerConnection.onconnectionstatechange = () => { log('debug',`PC state ${activeCallUserId}: ${peerConnection?.connectionState}`); if (['disconnected', 'failed', 'closed'].includes(peerConnection?.connectionState)) { hangUpCall(false); } };
+             try { localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false }); localAudio.srcObject = localStream; localStream.getTracks().forEach(track => { if (peerConnection) peerConnection.addTrack(track, localStream); }); } catch (error) { log('error',"Admin mic access error:", error); displaySystemMessage("Error: Mic access failed.", 'error'); activeCallUserId = null; if(peerConnection) peerConnection.close(); peerConnection = null; throw error; }
+        }
+        function handleIncomingCall(userId, userName, callData) {
+            if (!appState.startsWith('ADMIN_') || activeCallUserId) { if (activeCallUserId) { update(ref(db, `chats/${userId}/call`), { state: 'ended', endedBy: 'admin_busy' }); } return; } if (document.getElementById(`call-alert-${userId}`)) return; log('info', `Incoming call from ${userName} (${userId})`); const alertDiv = document.createElement('div'); alertDiv.id = `call-alert-${userId}`; alertDiv.classList.add('call-alert', 'incoming'); alertDiv.innerHTML = `<span>Incoming: <strong>${userName}</strong></span><div class="button-group"><button class="join">Join</button><button class="reject">Reject</button></div>`; callNotificationsContainer.appendChild(alertDiv); alertDiv.querySelector('.join').onclick = () => joinIncomingCall(userId, userName, callData.offer, alertDiv); alertDiv.querySelector('.reject').onclick = () => rejectIncomingCall(userId, alertDiv); if (!isMuted) { ringtoneAudio.play().catch(e => {}); showNotification(`Call from ${userName}!`); } else { showNotification(`Call from ${userName} (Muted)`); }
+        }
+        async function joinIncomingCall(userId, userName, offerData, alertElement) {
+             ringtoneAudio.pause(); if (alertElement) alertElement.remove(); if (activeCallUserId) { alert("Already in call."); rejectIncomingCall(userId, null); return; } if (selectedUserId !== userId) { selectUserChat(userId); } log('info', `Admin joining call with ${userName} (${userId})`); callStatusDisplay.textContent = `Connecting...`; adminAudioCallButton.disabled = true;
+             try { await createAdminPeerConnection(userId); if (!peerConnection) return; if (!offerData || !offerData.sdp) throw new Error("Invalid offer."); await peerConnection.setRemoteDescription(new RTCSessionDescription(offerData)); const answer = await peerConnection.createAnswer(); await peerConnection.setLocalDescription(answer); const callUpdates = { state: 'active', answer: { type: answer.type, sdp: answer.sdp }, joinedBy: 'admin', joinTimestamp: serverTimestamp() }; await update(ref(db, `chats/${userId}/call`), callUpdates); listenForUserIceCandidates(userId); callStatusDisplay.textContent = 'Call Active'; adminAudioCallButton.textContent = 'End Call'; adminAudioCallButton.disabled = false; adminAudioCallButton.onclick = () => hangUpCall(true); } catch (error) { log('error', "Join call error:", error); displaySystemMessage(`Error joining call.`, 'error'); hangUpCall(true); callStatusDisplay.textContent = 'Join failed'; adminAudioCallButton.textContent = 'Audio Call'; adminAudioCallButton.onclick = adminStartCall; if(selectedUserId === userId) adminAudioCallButton.disabled = false; }
+        }
+        function listenForUserIceCandidates(userId) {
+             if (!userId || !peerConnection) return; const userIceRef = ref(db, `chats/${userId}/call/iceCandidates/user`); cleanupSpecificListener(userId, 'ice'); callSignalListeners[userId] = callSignalListeners[userId] || {};
+             callSignalListeners[userId].ice = onChildAdded(userIceRef, async (s) => { const c = s.val(); if (c && peerConnection && peerConnection.signalingState !== 'closed') { try { await peerConnection.addIceCandidate(new RTCIceCandidate(c)); } catch (e) { if (!e.message.includes("remote description is not set") && !e.message.includes("closed")) { log('error', `Add ICE from ${userId} error:`, e); } } } }); log('debug',`Listening for ICE from ${userId}`);
+        }
+        function cleanupUserIceListener(userId) { cleanupSpecificListener(userId, 'ice'); }
+        function cleanupSpecificListener(userId, type) {
+             if (userId && callSignalListeners[userId]?.[type]) { const path = type === 'answer' ? `chats/${userId}/call/answer` : `chats/${userId}/call/iceCandidates/user`; const event = type === 'answer' ? 'value' : 'child_added'; try { off(ref(db, path), event, callSignalListeners[userId][type]); } catch(e){log('warn',`Error cleaning ${type} listener ${userId}:`, e)} delete callSignalListeners[userId][type]; if (Object.keys(callSignalListeners[userId]).length === 0) { delete callSignalListeners[userId]; } log('debug', `Cleaned ${type} listener for ${userId}`); }
+        }
+        function rejectIncomingCall(userId, alertElement) { ringtoneAudio.pause(); if (alertElement) alertElement.remove(); update(ref(db, `chats/${userId}/call`), { state: 'ended', endedBy: 'admin_rejected', endTimestamp: serverTimestamp() }).catch(e => log('error',"Reject call error:", e)); }
+        function hangUpCall(signalFirebase = true) {
+             const uid = activeCallUserId; if (!uid && !peerConnection) return; log('info', `Hanging up ${uid}. Signal: ${signalFirebase}`);
+             if (peerConnection) { peerConnection.close(); peerConnection = null; } if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; localAudio.srcObject = null; } remoteAudio.srcObject = null;
+             if (uid) { cleanupUserIceListener(uid); cleanupSpecificListener(uid, 'answer'); }
+             activeCallUserId = null;
+             if (signalFirebase && uid) { update(ref(db, `chats/${uid}/call`), { state: 'ended', endedBy: 'admin', endTimestamp: serverTimestamp() }).catch(e => log('error',"Signal end error:", e)); }
+             hideActiveCallUI(uid);
+             callStatusDisplay.textContent = 'Call Ended'; adminAudioCallButton.textContent = 'Audio Call'; adminAudioCallButton.onclick = adminStartCall; adminAudioCallButton.disabled = !selectedUserId;
+             setTimeout(() => { if (!activeCallUserId) callStatusDisplay.textContent = ''; }, 2500);
+        }
+        function updateAdminCallUI(callState, userId, userName) {
+             if (!appState.startsWith('ADMIN_') || !userId) return; const state = callState?.state || 'idle'; const isSelectedUser = (userId === selectedUserId);
+             const incomingAlert = document.getElementById(`call-alert-${userId}`);
+             if (state === 'ringing' && callState.initiator === 'user') { if (!incomingAlert && !activeCallUserId) { handleIncomingCall(userId, userName, callState); } else if (activeCallUserId && activeCallUserId !== userId) { rejectIncomingCall(userId, incomingAlert); } }
+             else { if (incomingAlert) { ringtoneAudio.pause(); incomingAlert.remove(); } }
+             if (isSelectedUser) {
+                 adminAudioCallButton.onclick = adminStartCall;
+                 switch (state) {
+                     case 'ringing': callStatusDisplay.textContent = `${userName} is calling...`; adminAudioCallButton.textContent = 'Audio Call'; adminAudioCallButton.disabled = true; break;
+                     case 'admin-ringing': callStatusDisplay.textContent = `Calling ${userName}...`; adminAudioCallButton.textContent = 'Cancel Call'; adminAudioCallButton.disabled = false; adminAudioCallButton.onclick = () => hangUpCall(true); break;
+                     case 'active': callStatusDisplay.textContent = 'Call Active'; adminAudioCallButton.textContent = 'End Call'; adminAudioCallButton.disabled = false; adminAudioCallButton.onclick = () => hangUpCall(true); break;
+                     case 'ended': callStatusDisplay.textContent = 'Call Ended'; adminAudioCallButton.textContent = 'Audio Call'; adminAudioCallButton.disabled = false; setTimeout(() => { if (selectedUserId === userId && !activeCallUserId) callStatusDisplay.textContent = ''; }, 2500); break;
+                     default: callStatusDisplay.textContent = ''; adminAudioCallButton.textContent = 'Audio Call'; adminAudioCallButton.disabled = !!activeCallUserId; break;
+                 }
+             }
+             if (userId === activeCallUserId && (state === 'ended' || state === 'idle')) { hangUpCall(false); }
+        }
+        function showActiveCallUI(userId, userName) { /* ... (Overlay) ... */ }
+        function hideActiveCallUI(userId) { /* ... (Overlay) ... */ }
+        function hideAllCallNotifications() { /* ... (Overlay) ... */ }
+
+        // --- Mute and Notifications ---
+        function toggleMute() { if (!appState.startsWith('ADMIN_')) return; isMuted = !isMuted; localStorage.setItem('adminMuted', isMuted); updateMuteButtonUI(); if (isMuted) { ringtoneAudio.pause(); ringtoneAudio.currentTime = 0; } log('info', `Mute toggled: ${isMuted}`); }
+        function updateMuteButtonUI() { muteButton.textContent = isMuted ? 'Unmute Alerts' : 'Mute Alerts'; muteButton.classList.toggle('muted', isMuted); }
+        function requestNotificationPermission() { if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') { Notification.requestPermission(); } }
+        function showNotification(message) { if (isMuted) { log('debug', 'Notification muted:', message); return; } requestNotificationPermission(); if ('Notification' in window && Notification.permission === 'granted' && document.hidden) { const n = new Notification('Admin Panel Alert', { body: message, tag: 'admin-chat-alert' }); } else if ('Notification' in window && Notification.permission === 'granted' && !document.hidden) { log('debug',"Notification suppressed (tab active):", message); } else { /* Denied or not supported */ } }
+
+        // --- Utility Functions ---
+        function formatTimestamp(timestamp) { if (!timestamp) return ''; try { return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } }
+        function scrollToBottom(element = messagesDiv) { if(element) { setTimeout(() => { element.scrollTop = element.scrollHeight; }, 50); } }
+
+        // --- Logout ---
+        function handleLogout() {
+             if (!currentAdminUser) { log('warn', "Logout clicked but not logged in."); return; } if (!confirm("Logout?")) return; log('info', "Logging out..."); logoutButton.disabled = true; muteButton.disabled = true;
+             setAdminOnlineStatus(false).catch(e => log('warn', "Error setting offline on logout:", e)).finally(() => { signOut(auth).then(() => { log('info', "Sign out successful."); }).catch((error) => { log('error', "Sign Out Error:", error); }); });
+         }
+
+        // --- Conceptual Email Trigger (For User Panel) ---
+        /* User Panel: setupFirebaseConnection() / sendMessage()
+            get(ref(db, 'adminStatus/online')).then(snap => {
+                if (snap.exists() && snap.val() === false) {
+                    const uniqueUrl = `${ADMIN_PANEL_BASE_URL}?user=${userId}`;
+                    console.log(`** EMAIL TRIGGER: To ${ADMIN_EMAIL}, User: ${userName}, Link: ${uniqueUrl}`);
+                    // Trigger Firebase Function here
+                }
+            });
+        */
+
+        // --- Run App ---
+        initializeAppView();
+
+    </script>
+
+</body>
+</html>
